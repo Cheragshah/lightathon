@@ -9,6 +9,7 @@ import { AnimatePresence } from "framer-motion";
 import { SplashScreen } from "./components/SplashScreen";
 import { PageTransition } from "./components/PageTransition";
 import { useComingSoonRedirect } from "./hooks/useComingSoonRedirect";
+import { useUserRole } from "./hooks/useUserRole";
 import Landing from "./pages/Landing";
 import ComingSoon from "./pages/ComingSoon";
 import Auth from "./pages/Auth";
@@ -29,9 +30,12 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Home route with coming soon redirect logic
+// Home route with coming soon redirect logic (admins can bypass)
 const HomeRoute = () => {
-  const { isComingSoonEnabled, isLoading } = useComingSoonRedirect();
+  const { isComingSoonEnabled, isLoading: comingSoonLoading } = useComingSoonRedirect();
+  const { isAdmin, loading: roleLoading } = useUserRole();
+
+  const isLoading = comingSoonLoading || roleLoading;
 
   if (isLoading) {
     return (
@@ -41,7 +45,8 @@ const HomeRoute = () => {
     );
   }
 
-  if (isComingSoonEnabled) {
+  // Admins can bypass coming soon mode
+  if (isComingSoonEnabled && !isAdmin) {
     return <Navigate to="/coming-soon" replace />;
   }
 
