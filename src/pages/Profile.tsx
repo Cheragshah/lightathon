@@ -54,12 +54,7 @@ export default function Profile() {
       }
       
       setUser(session.user);
-      
-      // Pre-fill email from auth user
-      setFormData(prev => ({
-        ...prev,
-        email: session.user.email || "",
-      }));
+      const authEmail = session.user.email || "";
       
       // Load profile data from profiles table
       const { data: profile } = await supabase
@@ -72,7 +67,8 @@ export default function Profile() {
         setFormData({
           first_name: profile.first_name || "",
           last_name: profile.last_name || "",
-          email: profile.email || session.user.email || "",
+          // Use profile email if set, otherwise use auth email (but don't let user override auth email)
+          email: profile.email || authEmail,
           phone_whatsapp: profile.phone_whatsapp || "",
           address: profile.address || "",
           city: profile.city || "",
@@ -81,6 +77,12 @@ export default function Profile() {
           photograph_url: profile.photograph_url || "",
           batch: profile.batch,
         });
+      } else {
+        // No profile yet, use auth email
+        setFormData(prev => ({
+          ...prev,
+          email: authEmail,
+        }));
       }
     };
     
@@ -196,8 +198,12 @@ export default function Profile() {
     } else {
       toast({
         title: "Profile updated successfully!",
-        description: "Your information will be included in future codex generations.",
+        description: "Redirecting to dashboard...",
       });
+      // Redirect to dashboard after successful update
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
     }
   };
 
