@@ -7,39 +7,63 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
-      return new Response(JSON.stringify({ isAdmin: false, error: 'No authorization' }), {
-        status: 401,
+      console.log('No authorization header provided');
+      return new Response(JSON.stringify({ isAdmin: false, error: 'No authorization header' }), {
+        status: 200, // Return 200 with isAdmin: false instead of 401
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Create service role client for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Create anon client to verify the user's JWT
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
 
-    // Get user from JWT
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
+    // Get user from JWT using the auth client
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
 
-    if (userError || !user) {
-      return new Response(JSON.stringify({ isAdmin: false, error: 'Invalid token' }), {
-        status: 401,
+    if (userError) {
+      console.error('JWT verification error:', userError.message);
+      return new Response(JSON.stringify({ isAdmin: false, error: 'Invalid session' }), {
+        status: 200, // Return 200 with isAdmin: false to avoid breaking the UI
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    if (!user) {
+      console.log('No user found from JWT');
+      return new Response(JSON.stringify({ isAdmin: false, error: 'No user found' }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Check if user has admin or moderator role
-    const { data: hasAdminRole, error: adminRoleError } = await supabase
+    console.log('User verified:', user.id);
+
+    // Check if user has admin or moderator role using service role client
+    const { data: hasAdminRole, error: adminRoleError } = await supabaseAdmin
       .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-    const { data: hasModeratorRole, error: modRoleError } = await supabase
+    const { data: hasModeratorRole, error: modRoleError } = await supabaseAdmin
       .rpc('has_role', { _user_id: user.id, _role: 'moderator' });
 
     if (adminRoleError || modRoleError) {
@@ -50,6 +74,8 @@ serve(async (req) => {
       });
     }
 
+    console.log('Role check - isAdmin:', hasAdminRole, 'isModerator:', hasModeratorRole);
+
     // Must be at least moderator to access dashboard
     if (!hasAdminRole && !hasModeratorRole) {
       return new Response(JSON.stringify({ isAdmin: false, isModerator: false }), {
@@ -58,9 +84,8 @@ serve(async (req) => {
       });
     }
 
-    // If admin, fetch admin-only data
-    // Get all users with their roles and persona counts
-    const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
+    // If admin, fetch admin-only data using service role client
+    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (authUsersError) {
       console.error('Error fetching auth users:', authUsersError);
@@ -68,7 +93,7 @@ serve(async (req) => {
     }
 
     // Get roles for all users
-    const { data: userRoles, error: rolesError } = await supabase
+    const { data: userRoles, error: rolesError } = await supabaseAdmin
       .from('user_roles')
       .select('*');
 
@@ -78,23 +103,23 @@ serve(async (req) => {
     }
 
     // Get blocked users
-    const { data: blockedUsers } = await supabase
+    const { data: blockedUsers } = await supabaseAdmin
       .from('user_blocks')
       .select('user_id');
 
     const blockedUserIds = new Set(blockedUsers?.map(b => b.user_id) || []);
 
     const [runsResponse, activeRunsResponse, usageStatsResponse, recentUsageResponse, aiUsageLogsResponse] = await Promise.all([
-      supabase.from('persona_runs').select('id, title, status, created_at, user_id'),
-      supabase.from('persona_runs').select('id').eq('status', 'generating'),
-      supabase.from('ai_usage_logs')
+      supabaseAdmin.from('persona_runs').select('id, title, status, created_at, user_id'),
+      supabaseAdmin.from('persona_runs').select('id').eq('status', 'generating'),
+      supabaseAdmin.from('ai_usage_logs')
         .select('total_tokens, estimated_cost')
         .order('created_at', { ascending: false }),
-      supabase.from('ai_usage_logs')
+      supabaseAdmin.from('ai_usage_logs')
         .select('function_name, total_tokens, estimated_cost, created_at')
         .order('created_at', { ascending: false })
         .limit(10),
-      supabase.from('ai_usage_logs')
+      supabaseAdmin.from('ai_usage_logs')
         .select('user_id, estimated_cost, total_tokens')
     ]);
 

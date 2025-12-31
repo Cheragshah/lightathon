@@ -1133,28 +1133,61 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          city: string | null
           created_at: string | null
+          email: string | null
+          first_name: string | null
           full_name: string | null
           id: string
+          last_name: string | null
+          last_profile_prompt_at: string | null
           location: string | null
+          phone_whatsapp: string | null
+          photograph_url: string | null
+          pin_code: string | null
+          profile_completed: boolean | null
+          state: string | null
           title: string | null
           updated_at: string | null
           website_social: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           created_at?: string | null
+          email?: string | null
+          first_name?: string | null
           full_name?: string | null
           id: string
+          last_name?: string | null
+          last_profile_prompt_at?: string | null
           location?: string | null
+          phone_whatsapp?: string | null
+          photograph_url?: string | null
+          pin_code?: string | null
+          profile_completed?: boolean | null
+          state?: string | null
           title?: string | null
           updated_at?: string | null
           website_social?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
           created_at?: string | null
+          email?: string | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          last_name?: string | null
+          last_profile_prompt_at?: string | null
           location?: string | null
+          phone_whatsapp?: string | null
+          photograph_url?: string | null
+          pin_code?: string | null
+          profile_completed?: boolean | null
+          state?: string | null
           title?: string | null
           updated_at?: string | null
           website_social?: string | null
