@@ -1256,6 +1256,8 @@ export type Database = {
           pin_code: string | null
           profile_completed: boolean | null
           state: string | null
+          tagmango_host: string | null
+          tagmango_id: string | null
           title: string | null
           updated_at: string | null
           website_social: string | null
@@ -1277,6 +1279,8 @@ export type Database = {
           pin_code?: string | null
           profile_completed?: boolean | null
           state?: string | null
+          tagmango_host?: string | null
+          tagmango_id?: string | null
           title?: string | null
           updated_at?: string | null
           website_social?: string | null
@@ -1298,6 +1302,8 @@ export type Database = {
           pin_code?: string | null
           profile_completed?: boolean | null
           state?: string | null
+          tagmango_host?: string | null
+          tagmango_id?: string | null
           title?: string | null
           updated_at?: string | null
           website_social?: string | null
