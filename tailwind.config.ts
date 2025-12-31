@@ -14,7 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
+        display: ["Orbitron", "sans-serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
+        heading: ["Space Grotesk", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -61,6 +63,10 @@ export default {
         info: {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
+        },
+        glow: {
+          cyan: "hsl(var(--glow-cyan))",
+          teal: "hsl(var(--glow-teal))",
         },
         chart: {
           "1": "hsl(var(--chart-1))",
