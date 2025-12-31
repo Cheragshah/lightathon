@@ -12,11 +12,15 @@
     <meta name="description" content="Lightathon Dense to LightOS.">
     <meta name="author" content="Inner Clarity HUB" />
 
-    <!-- Fonts: Orbitron (display), Inter (body), Space Grotesk (heading) -->
+    <!-- Preconnect to font origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Preload critical font -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    
+    <!-- Fonts with display=swap for fast text rendering -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/logo.png" />
@@ -25,10 +29,24 @@
     <meta name="twitter:site" content="@InnerClarityHUB" />
     <meta name="twitter:image" content="/logo.png" />
     <meta property="og:title" content="Lightathon LightOS">
-  <meta name="twitter:title" content="Lightathon LightOS">
-  <meta property="og:description" content="Lightathon Dense to LightOS.">
-  <meta name="twitter:description" content="Lightathon Dense to LightOS.">
-</head>
+    <meta name="twitter:title" content="Lightathon LightOS">
+    <meta property="og:description" content="Lightathon Dense to LightOS.">
+    <meta name="twitter:description" content="Lightathon Dense to LightOS.">
+
+    <!-- Inline critical CSS for fast first paint -->
+    <style>
+      body {
+        margin: 0;
+        background-color: #0d0f14;
+        color: #e8ecf4;
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+    </style>
+  </head>
 
   <body>
     <div id="root"></div>
