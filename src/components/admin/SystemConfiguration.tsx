@@ -37,17 +37,22 @@ export const SystemConfiguration = () => {
 
       if (data) {
         data.forEach((setting) => {
-          const value = String(setting.setting_value).replace(/^"|"$/g, '');
+          // Handle both string and JSON values
+          let value = setting.setting_value;
+          if (typeof value === 'string') {
+            value = value.replace(/^"|"$/g, '');
+          }
           switch (setting.setting_key) {
             case "app_name":
-              setAppName(value);
+              if (value) setAppName(String(value));
               break;
             case "app_logo_url":
-              setCurrentLogoUrl(value);
-              setLogoPreview(value);
+              const logoValue = value ? String(value) : '';
+              setCurrentLogoUrl(logoValue);
+              setLogoPreview(logoValue);
               break;
             case "app_tagline":
-              setAppTagline(value);
+              if (value) setAppTagline(String(value));
               break;
           }
         });
@@ -156,37 +161,40 @@ export const SystemConfiguration = () => {
         return;
       }
 
-      // Update app name
+      // Upsert app name (insert or update)
       const { error: nameError } = await supabase
         .from("system_settings")
-        .update({
-          setting_value: JSON.stringify(appName),
+        .upsert({
+          setting_key: "app_name",
+          setting_value: appName,
+          description: "Application name displayed in header, footer, and browser title",
           updated_by: session?.user?.id,
-        })
-        .eq("setting_key", "app_name");
+        }, { onConflict: 'setting_key' });
 
       if (nameError) throw nameError;
 
-      // Update tagline
+      // Upsert tagline
       const { error: taglineError } = await supabase
         .from("system_settings")
-        .update({
-          setting_value: JSON.stringify(appTagline),
+        .upsert({
+          setting_key: "app_tagline",
+          setting_value: appTagline,
+          description: "Application tagline displayed on splash screen",
           updated_by: session?.user?.id,
-        })
-        .eq("setting_key", "app_tagline");
+        }, { onConflict: 'setting_key' });
 
       if (taglineError) throw taglineError;
 
-      // Update logo URL if changed
+      // Upsert logo URL if changed
       if (logoUrl && logoUrl !== currentLogoUrl) {
         const { error: logoError } = await supabase
           .from("system_settings")
-          .update({
-            setting_value: JSON.stringify(logoUrl),
+          .upsert({
+            setting_key: "app_logo_url",
+            setting_value: logoUrl,
+            description: "Application logo URL",
             updated_by: session?.user?.id,
-          })
-          .eq("setting_key", "app_logo_url");
+          }, { onConflict: 'setting_key' });
 
         if (logoError) throw logoError;
         setCurrentLogoUrl(logoUrl);
