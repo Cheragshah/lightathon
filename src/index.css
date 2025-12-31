@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+/* Fonts loaded in index.html for better performance */
 
 @tailwind base;
 @tailwind components;
@@ -345,6 +345,11 @@ Lightathon Cyberpunk Theme - Dark futuristic with cyan glow
       animation-duration: 8s;
     }
     
+    .animate-pulse-glow,
+    .animate-shimmer {
+      animation: none;
+    }
+    
     /* Larger touch targets on mobile */
     button, a {
       min-height: 44px;
@@ -355,6 +360,28 @@ Lightathon Cyberpunk Theme - Dark futuristic with cyan glow
       -webkit-user-select: none;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+    }
+  }
+  
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    
+    .animate-twinkle,
+    .animate-beam-flow,
+    .animate-ray-pulse,
+    .animate-float-particle,
+    .animate-float,
+    .animate-pulse-glow,
+    .animate-shimmer {
+      animation: none !important;
     }
   }
   
@@ -379,5 +406,14 @@ Lightathon Cyberpunk Theme - Dark futuristic with cyan glow
   body {
     min-height: 100vh;
     min-height: 100dvh;
+  }
+  
+  /* GPU acceleration hints for animations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
   }
 }

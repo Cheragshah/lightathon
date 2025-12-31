@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,25 +9,28 @@ import { AnimatePresence } from "framer-motion";
 import { SplashScreen } from "./components/SplashScreen";
 import { PageTransition } from "./components/PageTransition";
 import { TagMangoAuthProvider } from "./components/TagMangoAuthProvider";
+import { LoadingSpinner } from "./components/LoadingSpinner";
 import { useComingSoonRedirect } from "./hooks/useComingSoonRedirect";
 import { useUserRole } from "./hooks/useUserRole";
-import Landing from "./pages/Landing";
-import ComingSoon from "./pages/ComingSoon";
-import Auth from "./pages/Auth";
-import Signup from "./pages/Signup";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
-import Analytics from "./pages/Analytics";
-import Questionnaire from "./pages/Questionnaire";
-import PersonaView from "./pages/PersonaView";
-import PersonaRunView from "./pages/PersonaRunView";
-import CodexView from "./pages/CodexView";
-import CodexDetailView from "./pages/CodexDetailView";
-import SharedView from "./pages/SharedView";
-import TranscriptUpload from "./pages/TranscriptUpload";
-import Documentation from "./pages/Documentation";
-import NotFound from "./pages/NotFound";
+
+// Lazy load all pages for code splitting
+const Landing = lazy(() => import("./pages/Landing"));
+const ComingSoon = lazy(() => import("./pages/ComingSoon"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Questionnaire = lazy(() => import("./pages/Questionnaire"));
+const PersonaView = lazy(() => import("./pages/PersonaView"));
+const PersonaRunView = lazy(() => import("./pages/PersonaRunView"));
+const CodexView = lazy(() => import("./pages/CodexView"));
+const CodexDetailView = lazy(() => import("./pages/CodexDetailView"));
+const SharedView = lazy(() => import("./pages/SharedView"));
+const TranscriptUpload = lazy(() => import("./pages/TranscriptUpload"));
+const Documentation = lazy(() => import("./pages/Documentation"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -64,27 +67,29 @@ const AnimatedRoutes = () => {
   
   return (
     <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<HomeRoute />} />
-        <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
-        <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
-        <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
-        <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
-        <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
-        <Route path="/analytics" element={<PageTransition><Analytics /></PageTransition>} />
-        <Route path="/documentation" element={<PageTransition><Documentation /></PageTransition>} />
-        
-        <Route path="/questionnaire" element={<PageTransition><Questionnaire /></PageTransition>} />
-        <Route path="/transcript-upload" element={<PageTransition><TranscriptUpload /></PageTransition>} />
-        <Route path="/persona/:id" element={<PageTransition><PersonaView /></PageTransition>} />
-        <Route path="/persona-run/:id" element={<PageTransition><PersonaRunView /></PageTransition>} />
-        <Route path="/codex/:id" element={<PageTransition><CodexDetailView /></PageTransition>} />
-        <Route path="/share/:token" element={<PageTransition><SharedView /></PageTransition>} />
-        <Route path="/persona/:personaId/codex/:codexType" element={<PageTransition><CodexView /></PageTransition>} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
-      </Routes>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<HomeRoute />} />
+          <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
+          <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
+          <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
+          <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+          <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+          <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+          <Route path="/analytics" element={<PageTransition><Analytics /></PageTransition>} />
+          <Route path="/documentation" element={<PageTransition><Documentation /></PageTransition>} />
+          
+          <Route path="/questionnaire" element={<PageTransition><Questionnaire /></PageTransition>} />
+          <Route path="/transcript-upload" element={<PageTransition><TranscriptUpload /></PageTransition>} />
+          <Route path="/persona/:id" element={<PageTransition><PersonaView /></PageTransition>} />
+          <Route path="/persona-run/:id" element={<PageTransition><PersonaRunView /></PageTransition>} />
+          <Route path="/codex/:id" element={<PageTransition><CodexDetailView /></PageTransition>} />
+          <Route path="/share/:token" element={<PageTransition><SharedView /></PageTransition>} />
+          <Route path="/persona/:personaId/codex/:codexType" element={<PageTransition><CodexView /></PageTransition>} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+        </Routes>
+      </Suspense>
     </AnimatePresence>
   );
 };
