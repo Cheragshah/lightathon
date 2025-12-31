@@ -5,18 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Save, Loader2, Upload, X } from "lucide-react";
+import { Settings, Save, Loader2, Upload, X, Clock } from "lucide-react";
 
 export const SystemConfiguration = () => {
   const [appName, setAppName] = useState<string>("");
   const [appTagline, setAppTagline] = useState<string>("");
+  const [comingSoonEnabled, setComingSoonEnabled] = useState<boolean>(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [currentLogoUrl, setCurrentLogoUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [savingComingSoon, setSavingComingSoon] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,6 +51,17 @@ export const SystemConfiguration = () => {
               break;
           }
         });
+      }
+
+      // Load coming soon setting from app_settings
+      const { data: comingSoonData } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "coming_soon_enabled")
+        .maybeSingle();
+
+      if (comingSoonData?.value !== undefined) {
+        setComingSoonEnabled(comingSoonData.value === true || comingSoonData.value === "true");
       }
     } catch (error: any) {
       toast({
@@ -222,6 +236,51 @@ export const SystemConfiguration = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Coming Soon Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-amber-600" />
+            <div>
+              <Label htmlFor="comingSoon" className="text-base font-medium">Coming Soon Mode</Label>
+              <p className="text-sm text-muted-foreground">
+                When enabled, non-admin users will see the coming soon page
+              </p>
+            </div>
+          </div>
+          <Switch
+            id="comingSoon"
+            checked={comingSoonEnabled}
+            disabled={savingComingSoon}
+            onCheckedChange={async (checked) => {
+              setSavingComingSoon(true);
+              try {
+                const { error } = await supabase
+                  .from("app_settings")
+                  .update({ value: checked })
+                  .eq("key", "coming_soon_enabled");
+
+                if (error) throw error;
+
+                setComingSoonEnabled(checked);
+                toast({
+                  title: checked ? "Coming Soon Mode Enabled" : "Coming Soon Mode Disabled",
+                  description: checked 
+                    ? "Non-admin users will now see the coming soon page" 
+                    : "All users can now access the full site",
+                });
+              } catch (error: any) {
+                toast({
+                  title: "Error updating setting",
+                  description: error.message,
+                  variant: "destructive",
+                });
+              } finally {
+                setSavingComingSoon(false);
+              }
+            }}
+          />
+        </div>
+
         {/* App Name */}
         <div className="space-y-2">
           <Label htmlFor="appName">Application Name</Label>
