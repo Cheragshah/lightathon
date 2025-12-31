@@ -5,8 +5,9 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail } from "lucide-react";
+import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle } from "lucide-react";
 import { UsersTable } from "@/components/admin/UsersTable";
+import { UserProfilesTable } from "@/components/admin/UserProfilesTable";
 import { exportToCSV } from "@/utils/exportAdminData";
 import { useToast } from "@/hooks/use-toast";
 import { UsageCharts } from "@/components/admin/UsageCharts";
@@ -290,6 +291,10 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 mr-2" />
               Users
             </TabsTrigger>
+            <TabsTrigger value="profiles">
+              <UserCircle className="h-4 w-4 mr-2" />
+              Profiles
+            </TabsTrigger>
             <TabsTrigger value="analytics">
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
@@ -351,6 +356,10 @@ export default function AdminDashboard() {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="profiles">
+            <UserProfilesTable users={users} />
           </TabsContent>
 
           <TabsContent value="analytics">

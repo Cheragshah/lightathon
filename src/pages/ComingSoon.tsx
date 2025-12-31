@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 interface TimeLeft {
   days: number;
@@ -181,14 +181,15 @@ const ComingSoon = () => {
           )}
         </div>
 
+        {/* Logo */}
+        <div className="flex justify-center pt-4">
+          <img src={logo} alt="Inner Clarity HUB" className="h-20 w-20 rounded-full" />
+        </div>
+
         {/* Footer */}
         <footer className="pt-8 sm:pt-12 border-t border-border/30">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-primary transition-colors">
-              Home
-            </Link>
-            <span className="hidden sm:inline">•</span>
-            <span>© 2025 Lightathon</span>
+          <div className="flex flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
+            <span>© 2025 Inner Clarity HUB. All rights reserved.</span>
           </div>
         </footer>
       </div>
