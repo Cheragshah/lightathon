@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@supabase/supabase-js";
-import { ArrowLeft, ArrowRight, Sparkles, Loader2, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Loader2, Save, Trash2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const STORAGE_KEY = "questionnaire_autosave";
@@ -35,9 +35,19 @@ interface GroupedQuestion extends Question {
   category_order: number;
 }
 
+interface UserProfile {
+  batch: string | null;
+}
+
+interface Batch {
+  id: string;
+  batch_name: string;
+}
+
 export default function Questionnaire() {
   const [user, setUser] = useState<User | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // Now 0-indexed to match category array
+  const [userBatch, setUserBatch] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [questionsByCategory, setQuestionsByCategory] = useState<Map<string, GroupedQuestion[]>>(new Map());
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -46,6 +56,8 @@ export default function Questionnaire() {
   const [error, setError] = useState<string | null>(null);
   const [hasSavedData, setHasSavedData] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [noBatchAssigned, setNoBatchAssigned] = useState(false);
+  const [noCategoriesEnabled, setNoCategoriesEnabled] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -107,35 +119,85 @@ export default function Questionnaire() {
   }, [toast]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser(session.user);
-      } else {
+    const initializeQuestionnaire = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         navigate("/auth");
+        return;
       }
-    });
+      
+      setUser(session.user);
+      
+      // Fetch user's batch from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("batch")
+        .eq("id", session.user.id)
+        .single();
+      
+      if (!profile?.batch) {
+        setNoBatchAssigned(true);
+        setFetchingQuestions(false);
+        return;
+      }
+      
+      setUserBatch(profile.batch);
+      
+      // Fetch the batch ID from batch name
+      const { data: batchData } = await supabase
+        .from("batches")
+        .select("id")
+        .eq("batch_name", profile.batch)
+        .eq("is_active", true)
+        .single();
+      
+      if (!batchData) {
+        setNoBatchAssigned(true);
+        setFetchingQuestions(false);
+        return;
+      }
+      
+      await fetchActiveQuestions(batchData.id);
+    };
+    
+    initializeQuestionnaire();
   }, [navigate]);
 
-  useEffect(() => {
-    fetchActiveQuestions();
-  }, []);
-
-  const fetchActiveQuestions = async () => {
+  const fetchActiveQuestions = async (batchId: string) => {
     try {
       setFetchingQuestions(true);
       setError(null);
 
-      // Fetch active categories
+      // Fetch enabled category assignments for this batch
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from("questionnaire_assignments")
+        .select("category_id")
+        .eq("batch_id", batchId)
+        .eq("is_enabled", true);
+
+      if (assignmentsError) throw assignmentsError;
+
+      if (!assignments || assignments.length === 0) {
+        setNoCategoriesEnabled(true);
+        setFetchingQuestions(false);
+        return;
+      }
+
+      const enabledCategoryIds = assignments.map(a => a.category_id);
+
+      // Fetch active categories that are enabled for this batch
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("questionnaire_categories")
         .select("*")
         .eq("is_active", true)
+        .in("id", enabledCategoryIds)
         .order("display_order");
 
       if (categoriesError) throw categoriesError;
 
       if (!categoriesData || categoriesData.length === 0) {
-        setError("No active categories found. Please contact an administrator.");
+        setNoCategoriesEnabled(true);
+        setFetchingQuestions(false);
         return;
       }
 
@@ -146,7 +208,7 @@ export default function Questionnaire() {
         .from("questionnaire_questions")
         .select("*")
         .eq("is_active", true)
-        .in("category_id", categoriesData.map(c => c.id))
+        .in("category_id", enabledCategoryIds)
         .order("display_order");
 
       if (questionsError) throw questionsError;
@@ -271,13 +333,19 @@ export default function Questionnaire() {
         });
       });
 
-      // Call create-persona-run edge function
-      const { data, error } = await supabase.functions.invoke("create-persona-run", {
-        body: {
+      // Save answers to persona_runs table without triggering codex generation
+      // Admin will trigger generation manually
+      const { data, error } = await supabase
+        .from("persona_runs")
+        .insert({
+          user_id: user.id,
           title: "My Coach Persona",
-          answers: formattedAnswers,
-        },
-      });
+          answers_json: formattedAnswers,
+          status: "pending", // Waiting for admin to trigger generation
+          source_type: "questionnaire",
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
@@ -287,15 +355,15 @@ export default function Questionnaire() {
       setHasSavedData(false);
 
       toast({
-        title: "Persona Run Created!",
-        description: "Your CODEXes are being generated. This may take several minutes.",
+        title: "Questionnaire Submitted!",
+        description: "Your answers have been saved. The trainer will generate your codexes soon.",
       });
 
-      // Navigate to persona run view
-      navigate(`/persona-run/${data.personaRunId}`);
+      // Navigate to dashboard instead of persona run view
+      navigate("/dashboard");
     } catch (error: any) {
       toast({
-        title: "Error creating persona run",
+        title: "Error saving answers",
         description: error.message,
         variant: "destructive",
       });
@@ -312,6 +380,48 @@ export default function Questionnaire() {
           <div className="max-w-3xl mx-auto flex flex-col items-center justify-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Loading questionnaire...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (noBatchAssigned) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation isAuthenticated={!!user} />
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-3xl mx-auto">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">No batch assigned</p>
+                  <p>You have not been assigned to a workshop batch yet. Please contact your trainer to be added to a batch.</p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (noCategoriesEnabled) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation isAuthenticated={!!user} />
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-3xl mx-auto">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">No questionnaire available</p>
+                  <p>Your batch ({userBatch}) does not have any questionnaire sections enabled yet. Please wait for your trainer to enable the questionnaire.</p>
+                </div>
+              </AlertDescription>
+            </Alert>
           </div>
         </div>
       </div>
@@ -351,7 +461,7 @@ export default function Questionnaire() {
                   <div>
                     <CardTitle className="text-3xl">Coach Persona Blueprint</CardTitle>
                     <CardDescription>
-                      Answer the questions to generate your complete coaching identity
+                      Answer the questions to build your coaching identity
                     </CardDescription>
                   </div>
                 </div>
@@ -377,7 +487,7 @@ export default function Questionnaire() {
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-sm text-muted-foreground mt-2">
-                Step {currentStep + 1} of {totalSteps}
+                Step {currentStep + 1} of {totalSteps} • Batch: {userBatch}
               </p>
             </CardHeader>
 
@@ -436,12 +546,12 @@ export default function Questionnaire() {
                         {loading ? (
                           <>
                             <Loader2 className="h-5 w-5 animate-spin" />
-                            Generating...
+                            Saving...
                           </>
                         ) : (
                           <>
                             <Sparkles className="h-5 w-5" />
-                            Generate CODEXes
+                            Submit Answers
                           </>
                         )}
                       </Button>

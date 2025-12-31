@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle, ChevronDown, ChevronRight, IndianRupee } from "lucide-react";
+import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle, ChevronDown, ChevronRight, IndianRupee, Layers, Play } from "lucide-react";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { UserProfilesTable } from "@/components/admin/UserProfilesTable";
 import { exportToCSV } from "@/utils/exportAdminData";
@@ -27,6 +27,9 @@ import { SystemSettings } from "@/components/admin/SystemSettings";
 import { AIProvidersManager } from "@/components/admin/AIProvidersManager";
 import { EmailSettings } from "@/components/admin/EmailSettings";
 import { PricingBracketsManager } from "@/components/admin/PricingBracketsManager";
+import { BatchManager } from "@/components/admin/BatchManager";
+import { CategoryAssignments } from "@/components/admin/CategoryAssignments";
+import { CodexGenerationControl } from "@/components/admin/CodexGenerationControl";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -341,7 +344,7 @@ export default function AdminDashboard() {
         )}
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Users
@@ -350,6 +353,18 @@ export default function AdminDashboard() {
               <UserCircle className="h-4 w-4 mr-2" />
               Profiles
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="batches">
+                <Layers className="h-4 w-4 mr-2" />
+                Batches
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="generation">
+                <Play className="h-4 w-4 mr-2" />
+                Generation
+              </TabsTrigger>
+            )}
             <TabsTrigger value="analytics">
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
@@ -416,6 +431,21 @@ export default function AdminDashboard() {
           <TabsContent value="profiles">
             <UserProfilesTable users={users} />
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="batches">
+              <div className="space-y-6">
+                <BatchManager />
+                <CategoryAssignments />
+              </div>
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+            <TabsContent value="generation">
+              <CodexGenerationControl />
+            </TabsContent>
+          )}
 
           <TabsContent value="analytics">
             <div className="space-y-6">
