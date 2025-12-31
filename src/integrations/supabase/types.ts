@@ -322,6 +322,36 @@ export type Database = {
         }
         Relationships: []
       }
+      batches: {
+        Row: {
+          batch_name: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          batch_name: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          batch_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       codex_ai_steps: {
         Row: {
           codex_prompt_id: string
@@ -366,6 +396,83 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "ai_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      codex_generation_queue: {
+        Row: {
+          ai_model: string | null
+          ai_provider_id: string | null
+          batch_id: string | null
+          codex_prompt_id: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          persona_run_id: string | null
+          started_at: string | null
+          status: string | null
+          triggered_by: string
+          user_id: string
+        }
+        Insert: {
+          ai_model?: string | null
+          ai_provider_id?: string | null
+          batch_id?: string | null
+          codex_prompt_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          persona_run_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          triggered_by: string
+          user_id: string
+        }
+        Update: {
+          ai_model?: string | null
+          ai_provider_id?: string | null
+          batch_id?: string | null
+          codex_prompt_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          persona_run_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          triggered_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codex_generation_queue_ai_provider_id_fkey"
+            columns: ["ai_provider_id"]
+            isOneToOne: false
+            referencedRelation: "ai_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "codex_generation_queue_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "codex_generation_queue_codex_prompt_id_fkey"
+            columns: ["codex_prompt_id"]
+            isOneToOne: false
+            referencedRelation: "codex_prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "codex_generation_queue_persona_run_id_fkey"
+            columns: ["persona_run_id"]
+            isOneToOne: false
+            referencedRelation: "persona_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -1134,6 +1241,7 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          batch: string | null
           city: string | null
           created_at: string | null
           email: string | null
@@ -1154,6 +1262,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          batch?: string | null
           city?: string | null
           created_at?: string | null
           email?: string | null
@@ -1174,6 +1283,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          batch?: string | null
           city?: string | null
           created_at?: string | null
           email?: string | null
@@ -1193,6 +1303,48 @@ export type Database = {
           website_social?: string | null
         }
         Relationships: []
+      }
+      questionnaire_assignments: {
+        Row: {
+          batch_id: string
+          category_id: string
+          enabled_at: string | null
+          enabled_by: string | null
+          id: string
+          is_enabled: boolean | null
+        }
+        Insert: {
+          batch_id: string
+          category_id: string
+          enabled_at?: string | null
+          enabled_by?: string | null
+          id?: string
+          is_enabled?: boolean | null
+        }
+        Update: {
+          batch_id?: string
+          category_id?: string
+          enabled_at?: string | null
+          enabled_by?: string | null
+          id?: string
+          is_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_assignments_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_assignments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questionnaire_categories: {
         Row: {
