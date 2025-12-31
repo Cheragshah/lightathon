@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AnimatePresence } from "framer-motion";
 import { SplashScreen } from "./components/SplashScreen";
 import { PageTransition } from "./components/PageTransition";
+import { TagMangoAuthProvider } from "./components/TagMangoAuthProvider";
 import { useComingSoonRedirect } from "./hooks/useComingSoonRedirect";
 import { useUserRole } from "./hooks/useUserRole";
 import Landing from "./pages/Landing";
@@ -117,7 +118,9 @@ const App = () => {
           )}
           
           <BrowserRouter>
-            <AnimatedRoutes />
+            <TagMangoAuthProvider>
+              <AnimatedRoutes />
+            </TagMangoAuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
