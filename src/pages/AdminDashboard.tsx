@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle } from "lucide-react";
+import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle, ChevronDown, ChevronRight, IndianRupee } from "lucide-react";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { UserProfilesTable } from "@/components/admin/UserProfilesTable";
 import { exportToCSV } from "@/utils/exportAdminData";
@@ -28,6 +28,61 @@ import { AIProvidersManager } from "@/components/admin/AIProvidersManager";
 import { EmailSettings } from "@/components/admin/EmailSettings";
 import { PricingBracketsManager } from "@/components/admin/PricingBracketsManager";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+// Optional Pricing Brackets wrapper component
+function OptionalPricingBrackets() {
+  const [enabled, setEnabled] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="p-0 h-auto hover:bg-transparent flex items-center gap-2">
+                {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <div className="flex items-center gap-2">
+                  <IndianRupee className="h-5 w-5" />
+                  <CardTitle className="text-base">Pricing Brackets Manager</CardTitle>
+                </div>
+                {!enabled && <Badge variant="secondary" className="ml-2">Disabled</Badge>}
+              </Button>
+            </CollapsibleTrigger>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{enabled ? "Enabled" : "Disabled"}</span>
+              <Switch
+                checked={enabled}
+                onCheckedChange={(checked) => {
+                  setEnabled(checked);
+                  if (checked) setExpanded(true);
+                }}
+              />
+            </div>
+          </div>
+          <CardDescription className="ml-6">
+            Configure L1, L2, L3 pricing brackets for offer strategies (optional feature)
+          </CardDescription>
+        </CardHeader>
+        <CollapsibleContent>
+          {enabled ? (
+            <CardContent className="pt-0">
+              <PricingBracketsManager />
+            </CardContent>
+          ) : (
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground">
+                Enable the toggle above to configure pricing brackets.
+              </p>
+            </CardContent>
+          )}
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -452,7 +507,7 @@ export default function AdminDashboard() {
               <TabsContent value="system" className="space-y-6">
                 <SystemConfiguration />
                 <SystemSettings />
-                <PricingBracketsManager />
+                <OptionalPricingBrackets />
               </TabsContent>
 
               <TabsContent value="ai-providers">
