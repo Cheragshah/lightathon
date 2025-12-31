@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/", "/auth", "/signup", "/share", "/documentation"];
+const PUBLIC_ROUTES = ["/", "/auth", "/signup", "/share", "/documentation", "/coming-soon"];
 
 export const useAuthSession = () => {
   const [session, setSession] = useState<Session | null>(null);

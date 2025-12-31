@@ -6,7 +6,6 @@ import { Mail, CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
-import { useTagMangoAuth } from "@/hooks/useTagMangoAuth";
 
 interface TimeLeft {
   days: number;
@@ -21,9 +20,6 @@ const ComingSoon = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [targetDate, setTargetDate] = useState<Date | null>(null);
-
-  // Handle TagMango authentication
-  const { isLoading: isTagMangoLoading, error: tagMangoError, hasToken } = useTagMangoAuth();
 
   // Fetch countdown target date from database
   useEffect(() => {
@@ -117,40 +113,6 @@ const ComingSoon = () => {
       </span>
     </div>
   );
-
-  // Show loading state when TagMango token is being verified
-  if (hasToken && isTagMangoLoading) {
-    return (
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
-        <LightBeamBackground />
-        <div className="relative z-10 text-center space-y-6">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-          <p className="text-xl text-muted-foreground">Signing you in...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state if TagMango authentication failed
-  if (hasToken && tagMangoError) {
-    return (
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
-        <LightBeamBackground />
-        <div className="relative z-10 max-w-md mx-auto text-center space-y-6">
-          <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-6 py-8">
-            <h2 className="text-2xl font-bold text-destructive mb-4">Authentication Failed</h2>
-            <p className="text-muted-foreground mb-6">{tagMangoError}</p>
-            <Button 
-              onClick={() => window.location.href = '/coming-soon'}
-              variant="outline"
-            >
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
