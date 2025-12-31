@@ -1,0 +1,367 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+Premium Orange Gradient Theme - Inspired by Apple, Tesla, Netflix, Spotify
+*/
+
+@layer base {
+  :root {
+    /* Premium Minimalist Light Mode */
+    /* Clean off-white base */
+    --background: 0 0% 99%;
+    --foreground: 0 0% 8%;
+    
+    /* Elevated card surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 8%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+    
+    /* Primary - Vibrant Orange (Netflix/Spotify energy) */
+    --primary: 24 95% 50%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Warm neutral */
+    --secondary: 30 10% 96%;
+    --secondary-foreground: 0 0% 8%;
+    
+    /* Muted - Sophisticated light gray */
+    --muted: 30 10% 96%;
+    --muted-foreground: 0 0% 45%;
+    
+    /* Accent - Warm Amber/Gold */
+    --accent: 35 95% 55%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive - Refined Red */
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success - Premium Emerald */
+    --success: 160 75% 40%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning - Warm Amber */
+    --warning: 40 95% 50%;
+    --warning-foreground: 0 0% 8%;
+    
+    /* Info - Clean Blue */
+    --info: 210 90% 50%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Borders & Inputs - Subtle elegance */
+    --border: 30 10% 90%;
+    --input: 30 10% 94%;
+    --ring: 24 95% 55%;
+    --radius: 0.75rem;
+    
+    /* Chart Colors */
+    --chart-1: 24 95% 50%;
+    --chart-2: 35 95% 55%;
+    --chart-3: 160 75% 40%;
+    --chart-4: 15 90% 55%;
+    --chart-5: 45 100% 55%;
+    
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 24 95% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 10% 96%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 30 10% 90%;
+    --sidebar-ring: 24 95% 55%;
+    
+    /* Premium gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(24 95% 50%) 0%, hsl(35 95% 55%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(35 95% 55%) 0%, hsl(45 100% 55%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(24 95% 50% / 0.05) 0%, hsl(35 95% 55% / 0.05) 50%, hsl(45 100% 55% / 0.05) 100%);
+    --glow-primary: 0 0 80px hsl(24 95% 50% / 0.25);
+    --glow-accent: 0 0 60px hsl(35 95% 55% / 0.2);
+  }
+
+  .dark {
+    /* Premium Dark Mode - Netflix/Tesla/Apple Inspired */
+    /* Rich black background */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+    
+    /* Elevated surfaces */
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Primary - Bright Orange */
+    --primary: 24 100% 55%;
+    --primary-foreground: 0 0% 4%;
+    
+    /* Secondary - Deep surface */
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    
+    /* Muted - Dark gray */
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+    
+    /* Accent - Coral/Peach glow */
+    --accent: 15 90% 60%;
+    --accent-foreground: 0 0% 4%;
+    
+    /* Destructive */
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success */
+    --success: 160 80% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning */
+    --warning: 40 100% 55%;
+    --warning-foreground: 0 0% 4%;
+    
+    /* Info */
+    --info: 210 95% 55%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Borders & Inputs */
+    --border: 0 0% 18%;
+    --input: 0 0% 15%;
+    --ring: 24 100% 55%;
+    
+    /* Chart Colors */
+    --chart-1: 24 100% 55%;
+    --chart-2: 15 90% 60%;
+    --chart-3: 160 80% 45%;
+    --chart-4: 35 95% 55%;
+    --chart-5: 45 100% 55%;
+    
+    /* Sidebar */
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 24 100% 55%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 24 100% 55%;
+    
+    /* Dark mode gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(24 100% 55% / 0.1) 0%, hsl(15 90% 60% / 0.1) 50%, hsl(35 95% 55% / 0.1) 100%);
+    --glow-primary: 0 0 100px hsl(24 100% 55% / 0.35);
+    --glow-accent: 0 0 80px hsl(15 90% 60% / 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Mesh gradient background - Orange theme */
+  .bg-mesh-gradient {
+    background-image: 
+      radial-gradient(at 27% 37%, hsla(24, 95%, 50%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 97% 21%, hsla(35, 95%, 55%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 52% 99%, hsla(15, 90%, 55%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 10% 29%, hsla(45, 100%, 55%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 97% 96%, hsla(24, 95%, 50%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 33% 50%, hsla(35, 95%, 55%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 79% 53%, hsla(15, 90%, 55%, 0.08) 0px, transparent 50%);
+  }
+  
+  /* Neural network animated background */
+  .bg-neural-network {
+    background-image: 
+      repeating-linear-gradient(0deg, hsla(24, 95%, 50%, 0.02) 0px, transparent 1px, transparent 2px, hsla(24, 95%, 50%, 0.02) 3px),
+      repeating-linear-gradient(90deg, hsla(35, 95%, 55%, 0.02) 0px, transparent 1px, transparent 2px, hsla(35, 95%, 55%, 0.02) 3px);
+    background-size: 60px 60px;
+    animation: neural-pulse 20s linear infinite;
+  }
+  
+  @keyframes neural-pulse {
+    0% { background-position: 0 0; }
+    100% { background-position: 60px 60px; }
+  }
+  
+  /* Gradient text - Orange theme */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(24 95% 50%) 0%, hsl(35 95% 55%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .text-gradient-accent {
+    background: linear-gradient(135deg, hsl(35 95% 55%) 0%, hsl(45 100% 55%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Glassmorphism effect - Enhanced */
+  .glass-card {
+    background: hsl(0 0% 100% / 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 0% / 0.05);
+  }
+  
+  .dark .glass-card {
+    background: hsl(0 0% 100% / 0.03);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+  }
+  
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+  
+  /* Floating animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  /* Pulse glow animation - Orange */
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px hsla(24, 95%, 50%, 0.3); }
+    50% { box-shadow: 0 0 40px hsla(24, 95%, 50%, 0.5), 0 0 60px hsla(35, 95%, 55%, 0.3); }
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  
+  /* Shimmer animation */
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, hsl(24 95% 50% / 0.1), transparent);
+    background-size: 1000px 100%;
+    animation: shimmer 3s linear infinite;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+  
+  .hover-scale {
+    transition: transform 0.3s ease;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+  
+  .hover\:scale-102:hover {
+    transform: scale(1.02);
+  }
+  
+  /* Premium button glow on hover */
+  .btn-glow {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, hsl(24 95% 50%) 0%, hsl(35 95% 55%) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .btn-glow:hover::before {
+    opacity: 0.1;
+  }
+  
+  /* Ripple effect animation */
+  @keyframes ripple-effect {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    /* Reduce animations on mobile for performance */
+    .animate-float {
+      animation-duration: 8s;
+    }
+    
+    /* Larger touch targets on mobile */
+    button, a {
+      min-height: 44px;
+    }
+    
+    /* Prevent text selection on interactive elements */
+    button, a, [role="button"] {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+  
+  /* Touch device optimizations */
+  @media (hover: none) {
+    .hover-scale:hover {
+      transform: none;
+    }
+    
+    .hover\:scale-102:hover {
+      transform: none;
+    }
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better mobile viewport handling */
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
