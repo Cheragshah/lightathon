@@ -122,7 +122,7 @@ export const AIModelSelector = ({
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select an AI model">
-            {selectedProvider && modelName && (
+            {selectedProvider && modelName && typeof modelName === 'string' && (
               <span>
                 {selectedProvider.name} / {options.find(o => o.modelId === modelName)?.modelName || modelName}
               </span>
