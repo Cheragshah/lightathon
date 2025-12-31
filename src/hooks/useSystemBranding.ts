@@ -24,16 +24,20 @@ export const useSystemBranding = (): SystemBranding => {
 
         if (data) {
           data.forEach((setting) => {
-            const value = String(setting.setting_value).replace(/^"|"$/g, "");
+            // Handle both string and JSON values
+            let value = setting.setting_value;
+            if (typeof value === 'string') {
+              value = value.replace(/^"|"$/g, "");
+            }
             switch (setting.setting_key) {
               case "app_name":
-                setAppName(value);
+                if (value) setAppName(String(value));
                 break;
               case "app_logo_url":
-                setAppLogo(value || null);
+                setAppLogo(value ? String(value) : null);
                 break;
               case "app_tagline":
-                setAppTagline(value);
+                if (value) setAppTagline(String(value));
                 break;
             }
           });
