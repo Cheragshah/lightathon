@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { LightBeamBackground } from "@/components/LightBeamBackground";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Landing = () => {
   return (
@@ -41,18 +42,15 @@ const Landing = () => {
           </Button>
         </div>
 
+        {/* Logo */}
+        <div className="flex justify-center pt-4">
+          <img src={logo} alt="Inner Clarity HUB" className="h-24 w-24 rounded-full" />
+        </div>
+
         {/* Footer */}
         <footer className="pt-12 sm:pt-16 border-t border-border/30">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-muted-foreground">
-            <Link to="/coming-soon" className="hover:text-primary transition-colors">
-              Coming Soon
-            </Link>
-            <span className="hidden sm:inline">•</span>
-            <Link to="/auth" className="hover:text-primary transition-colors">
-              Sign In
-            </Link>
-            <span className="hidden sm:inline">•</span>
-            <span>© 2025 Lightathon</span>
+          <div className="flex flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
+            <span>© 2025 Inner Clarity HUB. All rights reserved.</span>
           </div>
         </footer>
       </div>

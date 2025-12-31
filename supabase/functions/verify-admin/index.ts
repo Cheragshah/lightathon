@@ -109,6 +109,20 @@ serve(async (req) => {
 
     const blockedUserIds = new Set(blockedUsers?.map(b => b.user_id) || []);
 
+    // Get user profiles
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('*');
+
+    const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+    // Get unlimited runs permissions
+    const { data: unlimitedRuns } = await supabaseAdmin
+      .from('user_unlimited_runs')
+      .select('user_id');
+
+    const unlimitedRunsSet = new Set(unlimitedRuns?.map(u => u.user_id) || []);
+
     const [runsResponse, activeRunsResponse, usageStatsResponse, recentUsageResponse, aiUsageLogsResponse] = await Promise.all([
       supabaseAdmin.from('persona_runs').select('id, title, status, created_at, user_id'),
       supabaseAdmin.from('persona_runs').select('id').eq('status', 'generating'),
@@ -134,6 +148,9 @@ serve(async (req) => {
       const roles = userRoles?.filter(r => r.user_id === u.id).map(r => r.role) || [];
       const userPersonaRuns = runsData?.filter(p => p.user_id === u.id) || [];
       const userAiUsage = aiUsageLogs?.filter(log => log.user_id === u.id) || [];
+      const profile = profilesMap.get(u.id);
+      const isBlocked = blockedUserIds.has(u.id);
+      const hasUnlimitedRuns = unlimitedRunsSet.has(u.id);
       
       const aiUsage = userAiUsage.length > 0 ? {
         total_cost: userAiUsage.reduce((sum, log) => sum + (parseFloat(log.estimated_cost) || 0), 0),
@@ -150,6 +167,9 @@ serve(async (req) => {
         persona_run_count: userPersonaRuns.length,
         persona_runs: userPersonaRuns,
         ai_usage: aiUsage,
+        is_blocked: isBlocked,
+        has_unlimited_runs: hasUnlimitedRuns,
+        profile: profile || null,
       };
     });
 
