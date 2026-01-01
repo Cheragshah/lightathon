@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { Sparkles, Lock, CheckCircle2, ArrowLeft, Send, Calendar } from "lucide-react";
+import { Sparkles, Lock, CheckCircle2, ArrowLeft, Send, Calendar, Trophy, ChevronDown, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PageTransition } from "@/components/PageTransition";
+import { LightathonLeaderboard } from "@/components/LightathonLeaderboard";
 
 interface DailyProgress {
   id: string;
@@ -40,6 +42,7 @@ const Lightathon = () => {
   const [reflection, setReflection] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   useEffect(() => {
     loadLightathonData();
@@ -365,6 +368,26 @@ const Lightathon = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Leaderboard Section */}
+          <Collapsible open={isLeaderboardOpen} onOpenChange={setIsLeaderboardOpen} className="mt-6">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  <span>View Leaderboard</span>
+                </div>
+                {isLeaderboardOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <LightathonLeaderboard />
+            </CollapsibleContent>
+          </Collapsible>
         </main>
       </div>
     </PageTransition>
