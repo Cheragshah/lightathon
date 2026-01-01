@@ -23,3 +23,99 @@ verify_jwt = false
 
 [functions.admin-cancel-persona-run]
 verify_jwt = false
+
+[functions.admin-regenerate-codex]
+verify_jwt = false
+
+[functions.admin-regenerate-persona]
+verify_jwt = false
+
+[functions.admin-full-rerun-persona]
+verify_jwt = false
+
+[functions.admin-delete-persona-run]
+verify_jwt = false
+
+[functions.admin-delete-persona]
+verify_jwt = false
+
+[functions.admin-delete-user]
+verify_jwt = false
+
+[functions.admin-update-role]
+verify_jwt = false
+
+[functions.admin-update-user-role]
+verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-get-users]
+verify_jwt = false
+
+[functions.admin-reset-user-password]
+verify_jwt = false
+
+[functions.admin-block-user]
+verify_jwt = false
+
+[functions.admin-bulk-import-users]
+verify_jwt = false
+
+[functions.admin-bulk-export-pdfs]
+verify_jwt = false
+
+[functions.admin-update-persona]
+verify_jwt = false
+
+[functions.orchestrate-codexes]
+verify_jwt = false
+
+[functions.generate-codex-section]
+verify_jwt = false
+
+[functions.create-persona-run]
+verify_jwt = false
+
+[functions.regenerate-codex]
+verify_jwt = false
+
+[functions.regenerate-section]
+verify_jwt = false
+
+[functions.retry-pending-sections]
+verify_jwt = false
+
+[functions.retry-error-sections]
+verify_jwt = false
+
+[functions.generate-codex-pdf]
+verify_jwt = false
+
+[functions.generate-master-pdf]
+verify_jwt = false
+
+[functions.generate-pdf]
+verify_jwt = false
+
+[functions.generate-all-codexes-zip]
+verify_jwt = false
+
+[functions.create-share-link]
+verify_jwt = false
+
+[functions.verify-share-link]
+verify_jwt = false
+
+[functions.send-codex-notification]
+verify_jwt = false
+
+[functions.get-analytics]
+verify_jwt = false
+
+[functions.process-transcript]
+verify_jwt = false
+
+[functions.generate-persona]
+verify_jwt = false
