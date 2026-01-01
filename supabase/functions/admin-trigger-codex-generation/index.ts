@@ -45,6 +45,15 @@ serve(async (req) => {
 
     console.log('Admin verified, processing generation queue...');
 
+    // Check for optional request body parameters
+    let awaitAnswers = false;
+    try {
+      const body = await req.json();
+      awaitAnswers = body?.awaitAnswers === true;
+      console.log('awaitAnswers mode:', awaitAnswers);
+    } catch {
+      // No body or invalid JSON, proceed with defaults
+    }
     // Get pending queue items
     const { data: queueItems, error: queueError } = await supabase
       .from('codex_generation_queue')
@@ -226,6 +235,9 @@ serve(async (req) => {
           const actualSectionCount = sectionPrompts?.length || 1;
 
           // Create the codex with correct section count
+          // If awaitAnswers is true, set status to 'awaiting_answers' instead of 'generating'
+          const codexStatus = awaitAnswers ? 'awaiting_answers' : 'generating';
+          
           const { data: newCodex, error: codexError } = await supabase
             .from('codexes')
             .insert({
@@ -233,7 +245,7 @@ serve(async (req) => {
               codex_prompt_id: codexPrompt.id,
               codex_name: codexPrompt.codex_name,
               codex_order: codexPrompt.display_order,
-              status: 'generating',
+              status: codexStatus,
               total_sections: actualSectionCount,
               completed_sections: 0,
             })
@@ -253,24 +265,29 @@ serve(async (req) => {
             continue;
           }
 
-          console.log(`Created codex ${newCodex.id} for ${codexPrompt.codex_name} with ${actualSectionCount} sections`);
+          console.log(`Created codex ${newCodex.id} for ${codexPrompt.codex_name} with status ${codexStatus} and ${actualSectionCount} sections`);
 
-          // Trigger codex section generation for THIS SPECIFIC CODEX ONLY
-          try {
-            const { error: generateError } = await supabase.functions.invoke('orchestrate-codexes', {
-              body: { 
-                personaRunId,
-                codexId: newCodex.id, // Pass specific codexId to only generate this codex
-                aiModel: item.ai_model,
-                aiProviderId: item.ai_provider_id
+          // Only trigger orchestration if NOT awaiting answers
+          if (!awaitAnswers) {
+            // Trigger codex section generation for THIS SPECIFIC CODEX ONLY
+            try {
+              const { error: generateError } = await supabase.functions.invoke('orchestrate-codexes', {
+                body: { 
+                  personaRunId,
+                  codexId: newCodex.id, // Pass specific codexId to only generate this codex
+                  aiModel: item.ai_model,
+                  aiProviderId: item.ai_provider_id
+                }
+              });
+
+              if (generateError) {
+                console.error(`Error invoking orchestrate-codexes:`, generateError);
               }
-            });
-
-            if (generateError) {
-              console.error(`Error invoking orchestrate-codexes:`, generateError);
+            } catch (invokeError) {
+              console.error(`Failed to invoke orchestrate-codexes:`, invokeError);
             }
-          } catch (invokeError) {
-            console.error(`Failed to invoke orchestrate-codexes:`, invokeError);
+          } else {
+            console.log(`Codex ${newCodex.id} set to awaiting_answers - waiting for user input`);
           }
 
           // Mark queue item as completed (actual generation happens async)

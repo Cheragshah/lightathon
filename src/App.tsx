@@ -23,6 +23,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Questionnaire = lazy(() => import("./pages/Questionnaire"));
+const ContinueQuestionnaire = lazy(() => import("./pages/ContinueQuestionnaire"));
 const PersonaView = lazy(() => import("./pages/PersonaView"));
 const PersonaRunView = lazy(() => import("./pages/PersonaRunView"));
 const CodexView = lazy(() => import("./pages/CodexView"));
@@ -80,6 +81,7 @@ const AnimatedRoutes = () => {
           <Route path="/documentation" element={<PageTransition><Documentation /></PageTransition>} />
           
           <Route path="/questionnaire" element={<PageTransition><Questionnaire /></PageTransition>} />
+          <Route path="/continue-questionnaire/:personaRunId" element={<PageTransition><ContinueQuestionnaire /></PageTransition>} />
           <Route path="/transcript-upload" element={<PageTransition><TranscriptUpload /></PageTransition>} />
           <Route path="/persona/:id" element={<PageTransition><PersonaView /></PageTransition>} />
           <Route path="/persona-run/:id" element={<PageTransition><PersonaRunView /></PageTransition>} />

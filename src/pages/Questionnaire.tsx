@@ -349,8 +349,8 @@ export default function Questionnaire() {
     setLoading(true);
 
     try {
-      // Build answers object with question text and category context
-      const formattedAnswers: Record<string, { question: string; answer: string; category: string }> = {};
+      // Build answers object with question text, category context, and question_id
+      const formattedAnswers: Record<string, { question: string; answer: string; category: string; question_id: string }> = {};
       
       // Group by category and build answer keys
       questionsByCategory.forEach((categoryQuestions, categoryId) => {
@@ -364,6 +364,7 @@ export default function Questionnaire() {
               question: q.question_text,
               answer: answers[q.id],
               category: categoryName,
+              question_id: q.id,
             };
           }
         });
