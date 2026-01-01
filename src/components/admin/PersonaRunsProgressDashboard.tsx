@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   CheckCircle2, 
   XCircle, 
@@ -12,7 +13,9 @@ import {
   AlertTriangle,
   User,
   Calendar,
-  Zap
+  Zap,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +49,7 @@ export const PersonaRunsProgressDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [resyncing, setResyncing] = useState<string | null>(null);
   const [retriggering, setRetriggering] = useState<string | null>(null);
+  const [isRecentRunsOpen, setIsRecentRunsOpen] = useState(false);
 
   useEffect(() => {
     loadRuns();
@@ -343,106 +347,126 @@ export const PersonaRunsProgressDashboard = () => {
         </Card>
       )}
 
-      {/* Recent Runs */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Recent Persona Runs</CardTitle>
-              <CardDescription>History of persona run generations with quick actions</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={loadRuns}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
-            <div className="space-y-3">
-              {recentRuns.map(run => (
-                <div key={run.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(run.status)}
-                        <h4 className="font-medium">{run.title}</h4>
-                        {getStatusBadge(run.status)}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {run.user_email}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(run.created_at)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Zap className="h-3 w-3" />
-                          {run.codexes.length} codexes
-                        </span>
-                      </div>
-
-                      {/* Progress bar */}
-                      {run.totalSections > 0 && (
-                        <div className="mt-2">
-                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                            <span>{run.completedSections} completed</span>
-                            {run.errorSections > 0 && (
-                              <span className="text-destructive">{run.errorSections} errors</span>
-                            )}
-                            <span>{run.totalSections} total</span>
-                          </div>
-                          <Progress value={getProgressPercent(run)} className="h-1.5" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleResyncCodexes(run.id)}
-                        disabled={resyncing === run.id}
-                      >
-                        {resyncing === run.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4" />
-                        )}
-                        <span className="ml-1 hidden md:inline">Resync</span>
-                      </Button>
-                      {(run.status === 'failed' || run.status === 'pending') && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleRetriggerGeneration(run.id)}
-                          disabled={retriggering === run.id}
-                        >
-                          {retriggering === run.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                          <span className="ml-1 hidden md:inline">Regenerate</span>
-                        </Button>
-                      )}
-                    </div>
+      {/* Recent Runs - Collapsible */}
+      <Collapsible open={isRecentRunsOpen} onOpenChange={setIsRecentRunsOpen}>
+        <Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -m-2 p-2 rounded-lg transition-colors">
+                <div className="flex items-center gap-2">
+                  {isRecentRunsOpen ? (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <div>
+                    <CardTitle className="text-base">Recent Persona Runs ({recentRuns.length})</CardTitle>
+                    <CardDescription className="text-sm">Click to expand history and quick actions</CardDescription>
                   </div>
                 </div>
-              ))}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    loadRuns();
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {recentRuns.map(run => (
+                    <div key={run.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(run.status)}
+                            <h4 className="font-medium">{run.title}</h4>
+                            {getStatusBadge(run.status)}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {run.user_email}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(run.created_at)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Zap className="h-3 w-3" />
+                              {run.codexes.length} codexes
+                            </span>
+                          </div>
 
-              {recentRuns.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No recent persona runs found
+                          {/* Progress bar */}
+                          {run.totalSections > 0 && (
+                            <div className="mt-2">
+                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                <span>{run.completedSections} completed</span>
+                                {run.errorSections > 0 && (
+                                  <span className="text-destructive">{run.errorSections} errors</span>
+                                )}
+                                <span>{run.totalSections} total</span>
+                              </div>
+                              <Progress value={getProgressPercent(run)} className="h-1.5" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResyncCodexes(run.id)}
+                            disabled={resyncing === run.id}
+                          >
+                            {resyncing === run.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                            <span className="ml-1 hidden md:inline">Resync</span>
+                          </Button>
+                          {(run.status === 'failed' || run.status === 'pending') && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleRetriggerGeneration(run.id)}
+                              disabled={retriggering === run.id}
+                            >
+                              {retriggering === run.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                              <span className="ml-1 hidden md:inline">Regenerate</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {recentRuns.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No recent persona runs found
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+              </ScrollArea>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 };
