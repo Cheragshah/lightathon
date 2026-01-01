@@ -135,55 +135,91 @@ export default function Questionnaire() {
         .eq("id", session.user.id)
         .single();
       
-      if (!profile?.batch) {
-        setNoBatchAssigned(true);
-        setFetchingQuestions(false);
-        return;
+      setUserBatch(profile?.batch || null);
+      
+      // Fetch the batch ID from batch name (if user has a batch)
+      let batchId: string | null = null;
+      if (profile?.batch) {
+        const { data: batchData } = await supabase
+          .from("batches")
+          .select("id")
+          .eq("batch_name", profile.batch)
+          .eq("is_active", true)
+          .single();
+        
+        batchId = batchData?.id || null;
       }
       
-      setUserBatch(profile.batch);
-      
-      // Fetch the batch ID from batch name
-      const { data: batchData } = await supabase
-        .from("batches")
-        .select("id")
-        .eq("batch_name", profile.batch)
-        .eq("is_active", true)
-        .single();
-      
-      if (!batchData) {
-        setNoBatchAssigned(true);
-        setFetchingQuestions(false);
-        return;
-      }
-      
-      await fetchActiveQuestions(batchData.id);
+      await fetchActiveQuestions(session.user.id, batchId);
     };
     
     initializeQuestionnaire();
   }, [navigate]);
 
-  const fetchActiveQuestions = async (batchId: string) => {
+  const fetchActiveQuestions = async (userId: string, batchId: string | null) => {
     try {
       setFetchingQuestions(true);
       setError(null);
 
-      // Fetch enabled category assignments for this batch
-      const { data: assignments, error: assignmentsError } = await supabase
-        .from("questionnaire_assignments")
-        .select("category_id")
-        .eq("batch_id", batchId)
-        .eq("is_enabled", true);
+      // First, check for user-specific category assignments (these take priority)
+      const { data: userAssignments, error: userAssignmentsError } = await supabase
+        .from("user_category_assignments")
+        .select("category_id, is_enabled")
+        .eq("user_id", userId);
 
-      if (assignmentsError) throw assignmentsError;
+      if (userAssignmentsError) {
+        console.error("Error fetching user assignments:", userAssignmentsError);
+      }
 
-      if (!assignments || assignments.length === 0) {
-        setNoCategoriesEnabled(true);
+      // Create a map of user-specific overrides
+      const userOverrides = new Map<string, boolean>();
+      (userAssignments || []).forEach(a => {
+        userOverrides.set(a.category_id, a.is_enabled);
+      });
+
+      // Fetch batch-level category assignments (if user has a batch)
+      let batchCategoryIds: string[] = [];
+      if (batchId) {
+        const { data: batchAssignments, error: batchAssignmentsError } = await supabase
+          .from("questionnaire_assignments")
+          .select("category_id")
+          .eq("batch_id", batchId)
+          .eq("is_enabled", true);
+
+        if (batchAssignmentsError) throw batchAssignmentsError;
+        batchCategoryIds = (batchAssignments || []).map(a => a.category_id);
+      }
+
+      // Determine final enabled categories:
+      // 1. If user has a specific assignment, use that (enabled or disabled)
+      // 2. Otherwise, fall back to batch assignment
+      const enabledCategoryIds: string[] = [];
+      
+      // First, add all batch-enabled categories (unless user explicitly disabled them)
+      batchCategoryIds.forEach(categoryId => {
+        const userOverride = userOverrides.get(categoryId);
+        // If user has an override, respect it; otherwise include batch category
+        if (userOverride === undefined || userOverride === true) {
+          enabledCategoryIds.push(categoryId);
+        }
+      });
+
+      // Then, add any categories the user has explicitly enabled (even if not in batch)
+      userOverrides.forEach((isEnabled, categoryId) => {
+        if (isEnabled && !enabledCategoryIds.includes(categoryId)) {
+          enabledCategoryIds.push(categoryId);
+        }
+      });
+
+      if (enabledCategoryIds.length === 0) {
+        if (!batchId) {
+          setNoBatchAssigned(true);
+        } else {
+          setNoCategoriesEnabled(true);
+        }
         setFetchingQuestions(false);
         return;
       }
-
-      const enabledCategoryIds = assignments.map(a => a.category_id);
 
       // Fetch active categories that are enabled for this batch
       const { data: categoriesData, error: categoriesError } = await supabase

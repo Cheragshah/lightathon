@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, FileText, Calendar, Trash2, Eye } from "lucide-react";
 import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
+import { GenerationProgress } from "@/components/GenerationProgress";
 import type { User } from "@supabase/supabase-js";
 
 interface PersonaRun {
@@ -183,37 +184,58 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {personaRuns.map((run) => (
-                <Card key={run.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg line-clamp-2">{run.title}</CardTitle>
-                      {getStatusBadge(run.status)}
-                    </div>
-                    <CardDescription className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(run.created_at).toLocaleDateString()}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => navigate(`/persona-run/${run.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="space-y-8">
+              {/* Show generation progress for active generations */}
+              {personaRuns.some(run => run.status === "generating") && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Generation in Progress</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {personaRuns
+                      .filter(run => run.status === "generating")
+                      .map(run => (
+                        <GenerationProgress
+                          key={run.id}
+                          personaRunId={run.id}
+                          personaRun={run}
+                        />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show all persona runs */}
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {personaRuns.map((run) => (
+                  <Card key={run.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-lg line-clamp-2">{run.title}</CardTitle>
+                        {getStatusBadge(run.status)}
+                      </div>
+                      <CardDescription className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(run.created_at).toLocaleDateString()}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => navigate(`/persona-run/${run.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </div>
