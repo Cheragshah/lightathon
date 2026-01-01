@@ -161,6 +161,25 @@ export default function Questionnaire() {
       setFetchingQuestions(true);
       setError(null);
 
+      // First, fetch user's existing persona runs to check for already answered questions
+      const { data: existingRuns } = await supabase
+        .from("persona_runs")
+        .select("answers_json")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      // Extract answered question IDs from existing answers
+      const answeredQuestionIds = new Set<string>();
+      if (existingRuns?.[0]?.answers_json) {
+        const answersJson = existingRuns[0].answers_json as Record<string, any>;
+        Object.values(answersJson).forEach((entry: any) => {
+          if (entry.question_id) {
+            answeredQuestionIds.add(entry.question_id);
+          }
+        });
+      }
+
       // First, check for user-specific category assignments (these take priority)
       const { data: userAssignments, error: userAssignmentsError } = await supabase
         .from("user_category_assignments")
@@ -237,8 +256,6 @@ export default function Questionnaire() {
         return;
       }
 
-      setCategories(categoriesData);
-
       // Fetch active questions for these categories
       const { data: questionsData, error: questionsError } = await supabase
         .from("questionnaire_questions")
@@ -249,12 +266,33 @@ export default function Questionnaire() {
 
       if (questionsError) throw questionsError;
 
-      // Group questions by category
+      // Filter out categories where ALL questions have already been answered
+      const unansweredCategories = categoriesData.filter(category => {
+        const categoryQuestions = questionsData.filter(q => q.category_id === category.id);
+        // Category has unanswered questions if any question is NOT in the answered set
+        const hasUnansweredQuestions = categoryQuestions.some(q => !answeredQuestionIds.has(q.id));
+        return hasUnansweredQuestions;
+      });
+
+      if (unansweredCategories.length === 0) {
+        setNoCategoriesEnabled(true);
+        setFetchingQuestions(false);
+        return;
+      }
+
+      setCategories(unansweredCategories);
+
+      // Get only the category IDs that have unanswered questions
+      const unansweredCategoryIds = unansweredCategories.map(c => c.id);
+
+      // Group questions by category (only for unanswered categories)
       const groupedByCategory = new Map<string, GroupedQuestion[]>();
       
-      categoriesData.forEach(category => {
+      unansweredCategories.forEach(category => {
         const categoryQuestions = questionsData
           .filter(q => q.category_id === category.id)
+          // Only include questions that haven't been answered
+          .filter(q => !answeredQuestionIds.has(q.id))
           .map(q => ({
             ...q,
             category_name: category.category_name,
@@ -370,21 +408,43 @@ export default function Questionnaire() {
         });
       });
 
-      // Save answers to persona_runs table without triggering codex generation
-      // Admin will trigger generation manually
-      const { data, error } = await supabase
+      // Check for existing persona run to update instead of creating new one
+      const { data: existingRun } = await supabase
         .from("persona_runs")
-        .insert({
-          user_id: user.id,
-          title: "Your Persona",
-          answers_json: formattedAnswers,
-          status: "pending", // Waiting for admin to trigger generation
-          source_type: "questionnaire",
-        })
-        .select("id")
+        .select("id, answers_json")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
-      if (error) throw error;
+      if (existingRun) {
+        // Merge new answers with existing answers
+        const existingAnswers = existingRun.answers_json as Record<string, any> || {};
+        const mergedAnswers = { ...existingAnswers, ...formattedAnswers };
+
+        const { error } = await supabase
+          .from("persona_runs")
+          .update({
+            answers_json: mergedAnswers,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingRun.id);
+
+        if (error) throw error;
+      } else {
+        // Create new persona run
+        const { error } = await supabase
+          .from("persona_runs")
+          .insert({
+            user_id: user.id,
+            title: "Your Persona",
+            answers_json: formattedAnswers,
+            status: "pending",
+            source_type: "questionnaire",
+          });
+
+        if (error) throw error;
+      }
 
       // Clear saved data on successful submission
       localStorage.removeItem(STORAGE_KEY);
