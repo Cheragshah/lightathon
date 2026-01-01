@@ -331,63 +331,29 @@ export default function AdminDashboard() {
       case "audit":
         return <AuditLogsTable />;
 
-      case "configuration":
+      case "config-system":
         return isAdmin ? (
-          <Tabs defaultValue="system" className="space-y-4">
-            <TabsList className="flex-wrap">
-              <TabsTrigger value="system">
-                <Settings className="h-4 w-4 mr-2" />
-                System
-              </TabsTrigger>
-              <TabsTrigger value="ai-providers">
-                <Key className="h-4 w-4 mr-2" />
-                AI Providers
-              </TabsTrigger>
-              <TabsTrigger value="email">
-                <Mail className="h-4 w-4 mr-2" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="pdf-templates">
-                <FileText className="h-4 w-4 mr-2" />
-                PDF Templates
-              </TabsTrigger>
-              <TabsTrigger value="codex-prompts">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Codex Prompts
-              </TabsTrigger>
-              <TabsTrigger value="questions">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Questions
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="system" className="space-y-6">
-              <SystemConfiguration />
-              <SystemSettings />
-              <OptionalPricingBrackets />
-            </TabsContent>
-
-            <TabsContent value="ai-providers">
-              <AIProvidersManager />
-            </TabsContent>
-
-            <TabsContent value="email">
-              <EmailSettings />
-            </TabsContent>
-
-            <TabsContent value="pdf-templates">
-              <EnhancedPDFTemplateSettings />
-            </TabsContent>
-
-            <TabsContent value="codex-prompts">
-              <CodexPromptsManager />
-            </TabsContent>
-
-            <TabsContent value="questions">
-              <QuestionnaireQuestionsManager />
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-6">
+            <SystemConfiguration />
+            <SystemSettings />
+            <OptionalPricingBrackets />
+          </div>
         ) : null;
+
+      case "config-ai":
+        return isAdmin ? <AIProvidersManager /> : null;
+
+      case "config-email":
+        return isAdmin ? <EmailSettings /> : null;
+
+      case "config-pdf":
+        return isAdmin ? <EnhancedPDFTemplateSettings /> : null;
+
+      case "config-codex":
+        return isAdmin ? <CodexPromptsManager /> : null;
+
+      case "config-questions":
+        return isAdmin ? <QuestionnaireQuestionsManager /> : null;
 
       default:
         return null;
