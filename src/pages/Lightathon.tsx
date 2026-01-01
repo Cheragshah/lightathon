@@ -103,6 +103,8 @@ const Lightathon = () => {
     }
 
     setSubmitting(true);
+    const completedDayNumber = currentDay.day_number;
+    
     try {
       const { error } = await supabase
         .from('lightathon_daily_progress')
@@ -115,10 +117,23 @@ const Lightathon = () => {
 
       if (error) throw error;
 
-      toast.success(`Day ${currentDay.day_number} completed! 🎉`);
+      toast.success(`Day ${completedDayNumber} completed! 🎉`);
       
-      // Reload data to show updated state
+      // Reload data
       await loadLightathonData();
+      
+      // After reload, re-select the just-completed day to show review
+      const { data: freshProgress } = await supabase
+        .from('lightathon_daily_progress')
+        .select('*')
+        .eq('enrollment_id', enrollmentId)
+        .eq('day_number', completedDayNumber)
+        .single();
+      
+      if (freshProgress) {
+        setCurrentDay(freshProgress as DailyProgress);
+        setReflection(freshProgress.user_reflection || "");
+      }
     } catch (error) {
       console.error('Error completing day:', error);
       toast.error('Failed to complete day');
@@ -250,6 +265,18 @@ const Lightathon = () => {
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Completion Success Banner */}
+                {currentDay.status === 'completed' && (
+                  <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="font-medium">Day {currentDay.day_number} Completed!</span>
+                    </div>
+                    <p className="text-sm text-green-600 dark:text-green-500 mt-1">
+                      Review your mission and reflection below. {currentDay.day_number < 21 && "Your next mission will unlock at 4:30 AM IST."}
+                    </p>
+                  </div>
+                )}
                 {/* Mission Content */}
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap">
@@ -294,6 +321,25 @@ const Lightathon = () => {
                         Complete Day {currentDay.day_number}
                       </>
                     )}
+                  </Button>
+                )}
+
+                {/* View Next Day Button */}
+                {currentDay.status === 'completed' && currentDay.day_number < 21 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const nextDay = dailyProgress.find(d => d.day_number === currentDay.day_number + 1);
+                      if (nextDay && nextDay.status === 'unlocked') {
+                        selectDay(nextDay);
+                      } else {
+                        toast.info('Your next mission will unlock at 4:30 AM IST');
+                      }
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    View Next Mission Status
                   </Button>
                 )}
               </CardContent>
