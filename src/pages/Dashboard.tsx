@@ -359,7 +359,7 @@ export default function Dashboard() {
                 Your Persona  
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Create and manage your Coach Persona Architect blueprints
+                Your Journey to LightOS
               </p>
             </div>
             {/* Only show action buttons if not all categories are answered */}
@@ -458,7 +458,7 @@ export default function Dashboard() {
                   <Card key={run.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">{run.title}</CardTitle>
+                        <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">Flow: Dense to LightOS</CardTitle>
                         {getStatusBadge(run.status)}
                       </div>
                       <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
