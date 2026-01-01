@@ -21,7 +21,18 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Play, XCircle, RefreshCw, Users, Search, RotateCcw, Trash2, AlertCircle } from "lucide-react";
+import { Loader2, Play, XCircle, RefreshCw, Users, Search, RotateCcw, Trash2, AlertCircle, Settings2, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserCategoryAssignments } from "./UserCategoryAssignments";
 import {
@@ -457,6 +468,68 @@ export const CodexGenerationControl = () => {
     }
   };
 
+  // Handle individual codex AI assignment
+  const handleIndividualAIAssign = async (codexId: string, providerId: string, model: string) => {
+    try {
+      const { error } = await supabase
+        .from("codex_prompts")
+        .update({ 
+          primary_provider_id: providerId, 
+          primary_model: model 
+        })
+        .eq("id", codexId);
+
+      if (error) throw error;
+
+      // Update local state immediately
+      setCodexPrompts(prev => prev.map(c => 
+        c.id === codexId 
+          ? { ...c, primary_provider_id: providerId, primary_model: model }
+          : c
+      ));
+      toast.success("AI provider updated");
+    } catch (error: any) {
+      console.error("Error assigning AI:", error);
+      toast.error("Failed to update AI provider");
+    }
+  };
+
+  // Handle bulk AI assignment for selected codexes
+  const handleBulkAIAssignSelected = async () => {
+    if (!bulkProviderId || !bulkModel) {
+      toast.error("Please select a provider and model");
+      return;
+    }
+    if (selectedCodexIds.length === 0) {
+      toast.error("Please select at least one codex");
+      return;
+    }
+
+    setAssigningAI(true);
+    try {
+      const { error } = await supabase
+        .from("codex_prompts")
+        .update({ 
+          primary_provider_id: bulkProviderId, 
+          primary_model: bulkModel 
+        })
+        .in("id", selectedCodexIds);
+
+      if (error) throw error;
+
+      toast.success(`Updated ${selectedCodexIds.length} codex(es) with AI configuration`);
+      setShowBulkAIAssign(false);
+      setBulkProviderId("");
+      setBulkModel("");
+      fetchData();
+    } catch (error: any) {
+      console.error("Error assigning AI:", error);
+      toast.error("Failed to assign AI provider");
+    } finally {
+      setAssigningAI(false);
+    }
+  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -731,49 +804,120 @@ export const CodexGenerationControl = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base">Step 2: Select Codexes</CardTitle>
-                  <CardDescription>Choose which codexes to generate</CardDescription>
+                  <CardDescription>Choose which codexes to generate. Click the settings icon to configure AI per codex.</CardDescription>
                 </div>
-                {codexesWithoutAI.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowBulkAIAssign(true)}
-                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
-                  >
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Configure {codexesWithoutAI.length} Missing AI
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {selectedCodexIds.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowBulkAIAssign(true)}
+                    >
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      Bulk Assign AI ({selectedCodexIds.length})
+                    </Button>
+                  )}
+                  {codexesWithoutAI.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedCodexIds(codexesWithoutAI.map(c => c.id));
+                        setShowBulkAIAssign(true);
+                      }}
+                      className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                    >
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Configure {codexesWithoutAI.length} Missing AI
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {codexPrompts.map((codex) => {
                   const hasNoAI = !codex.primary_provider_id || !codex.primary_model;
+                  const currentProvider = aiProviders.find(p => p.id === codex.primary_provider_id);
+                  
                   return (
                     <div
                       key={codex.id}
-                      className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-center gap-1 p-2 border rounded-lg transition-colors ${
                         selectedCodexIds.includes(codex.id)
                           ? "bg-primary/10 border-primary"
                           : hasNoAI
                           ? "border-amber-400 bg-amber-50/50"
                           : "hover:bg-muted"
                       }`}
-                      onClick={() => {
-                        if (selectedCodexIds.includes(codex.id)) {
-                          setSelectedCodexIds(prev => prev.filter(id => id !== codex.id));
-                        } else {
-                          setSelectedCodexIds(prev => [...prev, codex.id]);
-                        }
-                      }}
-                      title={hasNoAI ? "No AI provider configured" : undefined}
                     >
-                      <Checkbox checked={selectedCodexIds.includes(codex.id)} />
-                      <span className="text-sm">{codex.codex_name}</span>
-                      {hasNoAI && (
-                        <AlertCircle className="h-4 w-4 text-amber-500" />
-                      )}
+                      <div 
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => {
+                          if (selectedCodexIds.includes(codex.id)) {
+                            setSelectedCodexIds(prev => prev.filter(id => id !== codex.id));
+                          } else {
+                            setSelectedCodexIds(prev => [...prev, codex.id]);
+                          }
+                        }}
+                      >
+                        <Checkbox checked={selectedCodexIds.includes(codex.id)} />
+                        <span className="text-sm">{codex.codex_name}</span>
+                        {hasNoAI && (
+                          <AlertCircle className="h-4 w-4 text-amber-500" />
+                        )}
+                      </div>
+                      
+                      {/* AI Provider Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 ml-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Settings2 className={`h-3 w-3 ${hasNoAI ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuLabel>
+                            {currentProvider ? (
+                              <span className="text-xs">
+                                Current: {currentProvider.name} / {codex.primary_model}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-amber-600">No AI configured</span>
+                            )}
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {aiProviders.map((provider) => (
+                            <DropdownMenuSub key={provider.id}>
+                              <DropdownMenuSubTrigger>
+                                {provider.name}
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {getModelsForProvider(provider.id).map((model) => (
+                                  <DropdownMenuItem
+                                    key={model.id}
+                                    onClick={() => handleIndividualAIAssign(codex.id, provider.id, model.id)}
+                                    className={
+                                      codex.primary_provider_id === provider.id && codex.primary_model === model.id
+                                        ? "bg-primary/10"
+                                        : ""
+                                    }
+                                  >
+                                    {model.name}
+                                    {codex.primary_provider_id === provider.id && codex.primary_model === model.id && (
+                                      <span className="ml-auto text-primary">✓</span>
+                                    )}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   );
                 })}
@@ -1052,19 +1196,34 @@ export const CodexGenerationControl = () => {
           <DialogHeader>
             <DialogTitle>Assign AI Provider to Codexes</DialogTitle>
             <DialogDescription>
-              {codexesWithoutAI.length} codex(es) don't have an AI provider configured. 
-              Select a provider and model to assign to all of them.
+              {selectedCodexIds.length > 0 
+                ? `Assign AI provider to ${selectedCodexIds.length} selected codex(es).`
+                : `${codexesWithoutAI.length} codex(es) don't have an AI provider configured.`
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Codexes without AI:</label>
-              <div className="flex flex-wrap gap-1">
-                {codexesWithoutAI.map(c => (
-                  <Badge key={c.id} variant="outline" className="text-amber-600 border-amber-400">
-                    {c.codex_name}
-                  </Badge>
-                ))}
+              <label className="text-sm font-medium">
+                {selectedCodexIds.length > 0 ? "Selected codexes:" : "Codexes without AI:"}
+              </label>
+              <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                {(selectedCodexIds.length > 0 
+                  ? codexPrompts.filter(c => selectedCodexIds.includes(c.id))
+                  : codexesWithoutAI
+                ).map(c => {
+                  const hasNoAI = !c.primary_provider_id || !c.primary_model;
+                  return (
+                    <Badge 
+                      key={c.id} 
+                      variant="outline" 
+                      className={hasNoAI ? "text-amber-600 border-amber-400" : ""}
+                    >
+                      {c.codex_name}
+                      {hasNoAI && <AlertCircle className="h-3 w-3 ml-1" />}
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
             <div className="space-y-2">
@@ -1107,14 +1266,17 @@ export const CodexGenerationControl = () => {
               <Button variant="outline" onClick={() => setShowBulkAIAssign(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleBulkAIAssign} disabled={assigningAI || !bulkProviderId || !bulkModel}>
+              <Button 
+                onClick={selectedCodexIds.length > 0 ? handleBulkAIAssignSelected : handleBulkAIAssign} 
+                disabled={assigningAI || !bulkProviderId || !bulkModel}
+              >
                 {assigningAI ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Assigning...
                   </>
                 ) : (
-                  `Assign to ${codexesWithoutAI.length} Codex(es)`
+                  `Assign to ${selectedCodexIds.length > 0 ? selectedCodexIds.length : codexesWithoutAI.length} Codex(es)`
                 )}
               </Button>
             </div>
