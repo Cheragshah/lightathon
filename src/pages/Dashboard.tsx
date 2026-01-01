@@ -6,11 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Calendar, Trash2, Eye } from "lucide-react";
+import { Plus, FileText, Calendar, Trash2, Eye, PlayCircle } from "lucide-react";
 import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { GenerationProgress } from "@/components/GenerationProgress";
 import type { User } from "@supabase/supabase-js";
+
+interface Codex {
+  id: string;
+  codex_name: string;
+  status: string;
+}
 
 interface PersonaRun {
   id: string;
@@ -18,6 +24,7 @@ interface PersonaRun {
   status: string;
   created_at: string;
   completed_at: string | null;
+  codexes?: Codex[];
 }
 
 export default function Dashboard() {
@@ -80,10 +87,43 @@ export default function Dashboard() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setPersonaRuns(data as any || []);
+      setPersonaRuns([]);
+      setLoading(false);
+      return;
     }
+
+    const runs = data as any || [];
+
+    // Fetch codexes for each run to check for awaiting_answers status
+    const runsWithCodexes = await Promise.all(
+      runs.map(async (run: PersonaRun) => {
+        const { data: codexes } = await supabase
+          .from("codexes")
+          .select("id, codex_name, status")
+          .eq("persona_run_id", run.id);
+        
+        return {
+          ...run,
+          codexes: codexes || [],
+        };
+      })
+    );
+
+    setPersonaRuns(runsWithCodexes);
     setLoading(false);
+  };
+
+  // Check if any persona run has codexes awaiting answers
+  const getAwaitingAnswersRun = (): PersonaRun | null => {
+    return personaRuns.find(run => 
+      run.codexes?.some(codex => codex.status === "awaiting_answers")
+    ) || null;
+  };
+
+  const getAwaitingCodexNames = (run: PersonaRun): string[] => {
+    return run.codexes
+      ?.filter(codex => codex.status === "awaiting_answers")
+      .map(codex => codex.codex_name) || [];
   };
 
   const handleDelete = async (id: string) => {
@@ -152,10 +192,33 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button size="lg" onClick={() => navigate("/questionnaire")} className="gap-2">
-                <Plus className="h-5 w-5" />
-                Answer Questionnaire
-              </Button>
+              {(() => {
+                const awaitingRun = getAwaitingAnswersRun();
+                if (awaitingRun) {
+                  const codexNames = getAwaitingCodexNames(awaitingRun);
+                  return (
+                    <Button 
+                      size="lg" 
+                      onClick={() => navigate(`/continue-questionnaire/${awaitingRun.id}`)} 
+                      className="gap-2"
+                    >
+                      <PlayCircle className="h-5 w-5" />
+                      Continue Questionnaire
+                      {codexNames.length > 0 && (
+                        <Badge variant="secondary" className="ml-2">
+                          {codexNames.length} pending
+                        </Badge>
+                      )}
+                    </Button>
+                  );
+                }
+                return (
+                  <Button size="lg" onClick={() => navigate("/questionnaire")} className="gap-2">
+                    <Plus className="h-5 w-5" />
+                    Answer Questionnaire
+                  </Button>
+                );
+              })()}
               <Button size="lg" variant="outline" onClick={() => navigate("/transcript-upload")} className="gap-2">
                 <FileText className="h-5 w-5" />
                 Upload Transcript
