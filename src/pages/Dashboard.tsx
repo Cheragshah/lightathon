@@ -86,20 +86,26 @@ export default function Dashboard() {
         .order("created_at", { ascending: false })
         .limit(1);
 
+      // Build answered question IDs from new format AND track old format keys
       const answeredQuestionIds = new Set<string>();
+      const answeredCategoryKeys = new Set<string>();
+      
       if (existingRuns?.[0]?.answers_json) {
         const answersJson = existingRuns[0].answers_json as Record<string, any>;
-        Object.values(answersJson).forEach((entry: any) => {
+        Object.entries(answersJson).forEach(([key, entry]: [string, any]) => {
+          // New format: has question_id
           if (entry.question_id) {
             answeredQuestionIds.add(entry.question_id);
           }
+          // Track all keys for old format matching
+          answeredCategoryKeys.add(key);
         });
       }
 
-      // Get user's enabled categories
+      // Get user's enabled categories with enabled_at for sorting
       const { data: userAssignments } = await supabase
         .from("user_category_assignments")
-        .select("category_id, is_enabled")
+        .select("category_id, is_enabled, enabled_at")
         .eq("user_id", userId);
 
       // Get batch info
@@ -163,17 +169,68 @@ export default function Dashboard() {
         .eq("is_active", true)
         .in("id", enabledCategoryIds);
 
-      // Find categories with unanswered questions
-      const unansweredCats: string[] = [];
-      (categoriesData || []).forEach(category => {
-        const categoryQuestions = (questionsData || []).filter(q => q.category_id === category.id);
-        const hasUnanswered = categoryQuestions.some(q => !answeredQuestionIds.has(q.id));
-        if (hasUnanswered) {
-          unansweredCats.push(category.category_name);
+      // Build a map of category_id -> enabled_at from user assignments
+      const categoryEnabledAt = new Map<string, string>();
+      (userAssignments || []).forEach(a => {
+        if (a.enabled_at) {
+          categoryEnabledAt.set(a.category_id, a.enabled_at);
         }
       });
 
-      setUnansweredCategories(unansweredCats);
+      // Find categories with unanswered questions
+      const unansweredCatsWithDate: Array<{ name: string; enabledAt: string }> = [];
+      
+      (categoriesData || []).forEach(category => {
+        const categoryQuestions = (questionsData || []).filter(q => q.category_id === category.id);
+        
+        // Convert category name to key prefix for old format matching
+        // e.g., "Generational Money Story" -> "generational_money_story"
+        const categoryKeyPrefix = category.category_name
+          .toLowerCase()
+          .replace(/\s+/g, '_');
+        
+        // Count how many questions in this category are answered
+        // Check both new format (question_id) and old format (key prefix)
+        let answeredCount = 0;
+        categoryQuestions.forEach(q => {
+          // Check new format first
+          if (answeredQuestionIds.has(q.id)) {
+            answeredCount++;
+          } else {
+            // Check old format: look for keys matching category prefix
+            const matchingKeys = Array.from(answeredCategoryKeys).filter(key => 
+              key.startsWith(categoryKeyPrefix)
+            );
+            if (matchingKeys.length >= categoryQuestions.length) {
+              // All questions in this category were answered via old format
+              answeredCount = categoryQuestions.length;
+            }
+          }
+        });
+        
+        // Check if category is fully answered using old format key matching
+        const oldFormatAnsweredCount = Array.from(answeredCategoryKeys).filter(key => 
+          key.startsWith(categoryKeyPrefix)
+        ).length;
+        
+        const isFullyAnswered = oldFormatAnsweredCount >= categoryQuestions.length || 
+                                 answeredCount >= categoryQuestions.length;
+        
+        if (!isFullyAnswered && categoryQuestions.length > 0) {
+          const enabledAt = categoryEnabledAt.get(category.id) || '1970-01-01';
+          unansweredCatsWithDate.push({ 
+            name: category.category_name, 
+            enabledAt 
+          });
+        }
+      });
+
+      // Sort by enabled_at descending (most recently enabled first)
+      unansweredCatsWithDate.sort((a, b) => 
+        new Date(b.enabledAt).getTime() - new Date(a.enabledAt).getTime()
+      );
+
+      setUnansweredCategories(unansweredCatsWithDate.map(c => c.name));
     } catch (err) {
       console.error("Error loading unanswered categories:", err);
     }
