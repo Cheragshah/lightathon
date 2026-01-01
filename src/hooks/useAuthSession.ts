@@ -45,6 +45,8 @@ export const useAuthSession = () => {
 
       // Redirect to login if not authenticated and on protected route
       if (!session && !isPublicRoute) {
+        // Store the intended route so we can redirect back after login
+        sessionStorage.setItem('intendedRoute', location.pathname);
         navigate('/auth');
       }
     });

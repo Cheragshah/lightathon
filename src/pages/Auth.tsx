@@ -24,12 +24,35 @@ export default function Auth() {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        handlePostLoginRedirect(session.user.id);
       }
     };
     
     checkUser();
   }, [navigate]);
+
+  const handlePostLoginRedirect = async (userId: string) => {
+    // Check for intended route first
+    const intendedRoute = sessionStorage.getItem('intendedRoute');
+    if (intendedRoute) {
+      sessionStorage.removeItem('intendedRoute');
+      navigate(intendedRoute);
+      return;
+    }
+
+    // Check if user is admin/moderator
+    try {
+      const { data: role } = await supabase.rpc('get_user_role', { _user_id: userId });
+      if (role === 'admin' || role === 'moderator') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      navigate('/dashboard');
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +71,7 @@ export default function Auth() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -61,8 +84,8 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      navigate("/dashboard");
+    } else if (data.user) {
+      handlePostLoginRedirect(data.user.id);
     }
   };
 
