@@ -51,6 +51,7 @@ export const PersonaRunsProgressDashboard = () => {
   const [retriggering, setRetriggering] = useState<string | null>(null);
   const [retryingPending, setRetryingPending] = useState<string | null>(null);
   const [forcingComplete, setForcingComplete] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const [isRecentRunsOpen, setIsRecentRunsOpen] = useState(false);
 
   useEffect(() => {
@@ -314,6 +315,26 @@ export const PersonaRunsProgressDashboard = () => {
     }
   };
 
+  const handleCancelGeneration = async (personaRunId: string) => {
+    try {
+      setCancelling(personaRunId);
+      
+      const { error } = await supabase.functions.invoke('admin-cancel-persona-run', {
+        body: { personaRunId }
+      });
+
+      if (error) throw error;
+
+      toast.success('Generation cancelled successfully');
+      loadRuns();
+    } catch (error) {
+      console.error('Error cancelling generation:', error);
+      toast.error('Failed to cancel generation');
+    } finally {
+      setCancelling(null);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -418,6 +439,20 @@ export const PersonaRunsProgressDashboard = () => {
                             <CheckCircle2 className="h-4 w-4" />
                           )}
                           <span className="ml-1 hidden md:inline">Force Complete</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancelGeneration(run.id)}
+                          disabled={cancelling === run.id}
+                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          {cancelling === run.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          )}
+                          <span className="ml-1 hidden md:inline">Cancel</span>
                         </Button>
                       </div>
                     </div>
