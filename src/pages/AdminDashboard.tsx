@@ -213,104 +213,108 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navigation isAuthenticated={true} />
       
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between gap-3 mb-8">
-          <div className="flex items-center gap-3">
-            <Users className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
+        {/* Header - Stack on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 min-w-0">
+            <Users className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">
                 {isAdmin ? 'Admin Dashboard' : 'Moderator Dashboard'}
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {isAdmin ? 'Manage all users and their persona runs' : 'View and manage users'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => navigate("/documentation")}
-              className="gap-2"
+              className="gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <BookOpen className="h-4 w-4" />
-              Documentation
+              <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Docs</span>
             </Button>
             <AdminNotifications />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Stats Grid - 2x2 on mobile, 4 on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium truncate">Total Users</CardTitle>
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">Registered accounts</p>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats.totalUsers}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Registered accounts</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Persona Runs</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium truncate">Persona Runs</CardTitle>
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPersonaRuns}</div>
-              <p className="text-xs text-muted-foreground">Total generations</p>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats.totalPersonaRuns}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Total generations</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total AI Cost</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium truncate">AI Cost</CardTitle>
+              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalAICost.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Across all users</p>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">${stats.totalAICost.toFixed(2)}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Across all users</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Generations</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground animate-pulse" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium truncate">Active</CardTitle>
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground animate-pulse flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeGenerations}</div>
-              <p className="text-xs text-muted-foreground">Currently processing</p>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats.activeGenerations}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Processing</p>
             </CardContent>
           </Card>
         </div>
 
         {activeRuns.length > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Active Generations</CardTitle>
-              <CardDescription>
+          <Card className="mb-6 sm:mb-8">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Active Generations</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Currently running persona generations - you can cancel them to save AI costs
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="space-y-2 sm:space-y-3">
                 {activeRuns.map((run) => (
-                  <div key={run.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium">{run.title}</span>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{run.user_email}</span>
-                        <span>•</span>
-                        <span>Started {new Date(run.created_at).toLocaleDateString()}</span>
+                  <div key={run.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="font-medium text-sm sm:text-base truncate">{run.title}</span>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                        <span className="truncate max-w-[150px] sm:max-w-none">{run.user_email}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="text-[10px] sm:text-xs">Started {new Date(run.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="w-full sm:w-auto flex-shrink-0"
                       onClick={async () => {
                         try {
                           const { error } = await supabase.functions.invoke('admin-cancel-persona-run', {
@@ -334,7 +338,7 @@ export default function AdminDashboard() {
                         }
                       }}
                     >
-                      <StopCircle className="h-4 w-4 mr-2" />
+                      <StopCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       Cancel
                     </Button>
                   </div>
@@ -344,47 +348,50 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="users">
-              <Users className="h-4 w-4 mr-2" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="profiles">
-              <UserCircle className="h-4 w-4 mr-2" />
-              Profiles
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="batches">
-                <Layers className="h-4 w-4 mr-2" />
-                Batches
+        <Tabs defaultValue="users" className="space-y-4 sm:space-y-6">
+          {/* Scrollable tabs for mobile */}
+          <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-max min-w-full sm:w-auto sm:min-w-0 h-auto flex-wrap sm:flex-nowrap gap-1 p-1">
+              <TabsTrigger value="users" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Users</span>
               </TabsTrigger>
-            )}
-            {isAdmin && (
-              <TabsTrigger value="generation">
-                <Play className="h-4 w-4 mr-2" />
-                Generation
+              <TabsTrigger value="profiles" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <UserCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Profiles</span>
               </TabsTrigger>
-            )}
-            <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="system">
-              <Zap className="h-4 w-4 mr-2" />
-              System Health
-            </TabsTrigger>
-            <TabsTrigger value="audit">
-              <LogIcon className="h-4 w-4 mr-2" />
-              Audit Logs
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="configuration">
-                <Settings className="h-4 w-4 mr-2" />
-                Configuration
+              {isAdmin && (
+                <TabsTrigger value="batches" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                  <Layers className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Batches</span>
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="generation" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                  <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Generation</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="analytics" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Analytics</span>
               </TabsTrigger>
-            )}
-          </TabsList>
+              <TabsTrigger value="system" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Health</span>
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                <LogIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Logs</span>
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="configuration" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Config</span>
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
           <TabsContent value="users">
             <Card>

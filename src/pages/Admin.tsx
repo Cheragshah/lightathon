@@ -49,21 +49,24 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navigation isAuthenticated={true} />
-      <div className="container mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground mt-2">Manage system settings, AI providers, and PDF templates</p>
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Admin Panel</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage system settings, AI providers, and PDF templates</p>
         </div>
         
-        <Tabs defaultValue="system" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="system">System</TabsTrigger>
-            <TabsTrigger value="ai-providers">AI Providers</TabsTrigger>
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="pdf-templates">PDF Templates</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="system" className="space-y-4 sm:space-y-6">
+          {/* Scrollable tabs for mobile */}
+          <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-max min-w-full sm:w-auto sm:min-w-0">
+              <TabsTrigger value="system" className="text-xs sm:text-sm px-3 sm:px-4">System</TabsTrigger>
+              <TabsTrigger value="ai-providers" className="text-xs sm:text-sm px-3 sm:px-4">AI Providers</TabsTrigger>
+              <TabsTrigger value="email" className="text-xs sm:text-sm px-3 sm:px-4">Email</TabsTrigger>
+              <TabsTrigger value="pdf-templates" className="text-xs sm:text-sm px-3 sm:px-4">PDF Templates</TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="system">
             <SystemConfiguration />
