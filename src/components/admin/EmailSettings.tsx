@@ -435,7 +435,7 @@ export const EmailSettings = () => {
                   </h1>
                   
                   <p style={{ fontSize: "16px", color: template.text_color, lineHeight: 1.6 }}>
-                    {template.body_text.replace("{{persona_title}}", "My Coach Persona")}
+                    {template.body_text.replace("{{persona_title}}", "Your Persona")}
                   </p>
                   
                   <div style={{ 

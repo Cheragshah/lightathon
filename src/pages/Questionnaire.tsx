@@ -375,7 +375,7 @@ export default function Questionnaire() {
         .from("persona_runs")
         .insert({
           user_id: user.id,
-          title: "My Coach Persona",
+          title: "Your Persona",
           answers_json: formattedAnswers,
           status: "pending", // Waiting for admin to trigger generation
           source_type: "questionnaire",

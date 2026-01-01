@@ -125,7 +125,7 @@ serve(async (req) => {
       .from("persona_runs")
       .insert({
         user_id: user.id,
-        title: validatedInput.title || "My Coach Persona",
+        title: validatedInput.title || "Your Persona",
         answers_json: validatedInput.answers,
         status: "pending",
         source_type: "questionnaire",
