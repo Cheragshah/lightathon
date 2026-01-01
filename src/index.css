@@ -155,9 +155,9 @@ Lightathon Cyberpunk Theme - Dark futuristic with cyan glow
   
   /* Custom animations */
   .animate-twinkle { animation: twinkle 4s ease-in-out infinite; }
-  .animate-beam-flow { animation: beam-flow 4s ease-in-out infinite; }
-  .animate-ray-pulse { animation: ray-pulse 3s ease-in-out infinite; }
-  .animate-float-particle { animation: float-particle 4s ease-in-out infinite; }
+  .animate-beam-flow { animation: beam-flow 3s linear infinite; }
+  .animate-ray-pulse { animation: ray-pulse 2s ease-in-out infinite; }
+  .animate-float-particle { animation: float-particle 5s ease-out infinite; }
   .animate-title-glow { animation: title-glow 3s ease-in-out infinite; }
   .animate-title-float { animation: title-float 4s ease-in-out infinite; }
 
@@ -176,19 +176,23 @@ Lightathon Cyberpunk Theme - Dark futuristic with cyan glow
     50% { opacity: 0.8; transform: scale(1.2); }
   }
   
+  /* Beam flow: translateY from 100% to -100% over 3 seconds, linear, infinite */
   @keyframes beam-flow {
-    0%, 100% { opacity: 0.4; transform: translateY(-100%); }
-    50% { opacity: 1; transform: translateY(100%); }
+    0% { transform: translateY(100%); opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { transform: translateY(-100%); opacity: 0.6; }
   }
   
+  /* Ray pulse: opacity 0.3 → 1 → 0.3, scale 1 → 1.2 → 1 over 2 seconds */
   @keyframes ray-pulse {
-    0%, 100% { opacity: 0.15; transform: scaleX(0.85); }
-    50% { opacity: 0.5; transform: scaleX(1); }
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.2); }
   }
   
+  /* Float particle: translateY 0 → -100vh, opacity 1 → 0 */
   @keyframes float-particle {
-    0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
-    50% { opacity: 0.9; transform: translateY(-80px) scale(1); }
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-100vh); }
   }
   
   /* Mesh gradient background */
