@@ -20,22 +20,38 @@ serve(async (req) => {
     // Verify admin user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header provided");
       return new Response(JSON.stringify({ error: "No authorization header" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
+    // Extract the token properly - remove "Bearer " prefix
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Create a client with the user's JWT to verify identity
+    const userSupabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      }
     );
 
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+
     if (userError || !user) {
+      console.error("User verification failed:", userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log("User verified:", user.id);
 
     const { data: roleData } = await supabase
       .from("user_roles")
