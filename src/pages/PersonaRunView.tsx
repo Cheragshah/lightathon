@@ -300,7 +300,13 @@ export default function PersonaRunView() {
         variant: "destructive",
       });
     } else {
-      setCodexes((codexData as any) || []);
+      // Hide "21 Days Lightathon" codex from regular users - only admins can see it
+      const filteredCodexes = isAdminData 
+        ? (codexData as any) || []
+        : ((codexData as any) || []).filter((c: Codex) => 
+            !c.codex_name.toLowerCase().includes('21 days lightathon')
+          );
+      setCodexes(filteredCodexes);
     }
 
     setLoading(false);
