@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [unansweredCategories, setUnansweredCategories] = useState<string[]>([]);
+  const [allCategoriesAnswered, setAllCategoriesAnswered] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -152,6 +153,7 @@ export default function Dashboard() {
 
       if (enabledCategoryIds.length === 0) {
         setUnansweredCategories([]);
+        setAllCategoriesAnswered(false);
         return;
       }
 
@@ -231,6 +233,11 @@ export default function Dashboard() {
       );
 
       setUnansweredCategories(unansweredCatsWithDate.map(c => c.name));
+      
+      // Check if all enabled categories have been answered (at least 1 enabled but 0 unanswered)
+      const totalEnabledCategories = (categoriesData || []).length;
+      const allAnswered = totalEnabledCategories > 0 && unansweredCatsWithDate.length === 0;
+      setAllCategoriesAnswered(allAnswered);
     } catch (err) {
       console.error("Error loading unanswered categories:", err);
     }
@@ -355,51 +362,54 @@ export default function Dashboard() {
                 Create and manage your Coach Persona Architect blueprints
               </p>
             </div>
-            <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              {(() => {
-                const awaitingRun = getAwaitingAnswersRun();
-                if (awaitingRun) {
-                  const codexNames = getAwaitingCodexNames(awaitingRun);
-                  return (
-                    <Button 
-                      size="default"
-                      onClick={() => navigate(`/continue-questionnaire/${awaitingRun.id}`)} 
-                      className="gap-2 w-full sm:w-auto"
-                    >
-                      <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span className="truncate">Continue Questionnaire</span>
-                      {codexNames.length > 0 && (
-                        <Badge variant="secondary" className="ml-1 flex-shrink-0">
-                          {codexNames.length}
-                        </Badge>
-                      )}
-                    </Button>
-                  );
-                }
-                
-                // Show category-specific button if there are unanswered categories
-                if (unansweredCategories.length > 0) {
-                  const categoryName = unansweredCategories[0];
+            {/* Only show action buttons if not all categories are answered */}
+            {!allCategoriesAnswered && (
+              <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                {(() => {
+                  const awaitingRun = getAwaitingAnswersRun();
+                  if (awaitingRun) {
+                    const codexNames = getAwaitingCodexNames(awaitingRun);
+                    return (
+                      <Button 
+                        size="default"
+                        onClick={() => navigate(`/continue-questionnaire/${awaitingRun.id}`)} 
+                        className="gap-2 w-full sm:w-auto"
+                      >
+                        <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="truncate">Continue Questionnaire</span>
+                        {codexNames.length > 0 && (
+                          <Badge variant="secondary" className="ml-1 flex-shrink-0">
+                            {codexNames.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    );
+                  }
+                  
+                  // Show category-specific button if there are unanswered categories
+                  if (unansweredCategories.length > 0) {
+                    const categoryName = unansweredCategories[0];
+                    return (
+                      <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
+                        <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="truncate">Answer {categoryName}</span>
+                      </Button>
+                    );
+                  }
+                  
                   return (
                     <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
                       <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span className="truncate">Answer {categoryName}</span>
+                      <span className="truncate">Answer Questionnaire</span>
                     </Button>
                   );
-                }
-                
-                return (
-                  <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
-                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    <span className="truncate">Answer Questionnaire</span>
-                  </Button>
-                );
-              })()}
-              <Button size="default" variant="outline" onClick={() => navigate("/transcript-upload")} className="gap-2 w-full sm:w-auto">
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                <span className="truncate">Upload Transcript</span>
-              </Button>
-            </div>
+                })()}
+                <Button size="default" variant="outline" onClick={() => navigate("/transcript-upload")} className="gap-2 w-full sm:w-auto">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                  <span className="truncate">Upload Transcript</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           {loading ? (
