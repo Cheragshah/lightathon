@@ -26,11 +26,25 @@ export interface AICallParams {
   maxTokens?: number;
 }
 
+// Helper to ensure URL has /chat/completions endpoint
+function ensureChatCompletionsUrl(baseUrl: string): string {
+  const url = baseUrl.replace(/\/+$/, ''); // Remove trailing slashes
+  if (url.endsWith('/chat/completions')) {
+    return url;
+  }
+  if (url.endsWith('/v1')) {
+    return `${url}/chat/completions`;
+  }
+  return `${url}/chat/completions`;
+}
+
 // Provider-specific API call implementations
 async function callOpenAI(params: AICallParams): Promise<AIResponse> {
   const { systemPrompt, userPrompt, provider, maxTokens } = params;
 
-  const response = await fetch(provider.baseUrl, {
+  const url = ensureChatCompletionsUrl(provider.baseUrl);
+  
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${provider.apiKey}`,
@@ -156,7 +170,9 @@ async function callDeepSeek(params: AICallParams): Promise<AIResponse> {
 async function callPerplexity(params: AICallParams): Promise<AIResponse> {
   const { systemPrompt, userPrompt, provider, maxTokens } = params;
 
-  const response = await fetch(provider.baseUrl, {
+  const url = ensureChatCompletionsUrl(provider.baseUrl);
+  
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${provider.apiKey}`,

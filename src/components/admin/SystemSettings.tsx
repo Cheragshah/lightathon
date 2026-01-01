@@ -130,15 +130,15 @@ export const SystemSettings = () => {
 
       const keysSet = new Set(keysData?.map(k => k.provider_id) || []);
 
-      // Only show providers with active API keys
-      const providersWithKeys = (providersData || [])
-        .filter(p => keysSet.has(p.id))
+      // Include Lovable AI (uses env var, no DB key needed) + providers with active API keys
+      const availableProviders = (providersData || [])
+        .filter(p => p.provider_code === "lovable" || keysSet.has(p.id))
         .map(p => ({
           ...p,
           available_models: (p.available_models as unknown) as Array<{ id: string; name: string }>
         }));
 
-      setAIProviders(providersWithKeys);
+      setAIProviders(availableProviders);
     } catch (error: any) {
       console.error("Error loading AI providers:", error);
     }
