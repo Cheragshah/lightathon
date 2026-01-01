@@ -162,8 +162,11 @@ Return ONLY the optimized merge prompt text, nothing else.`;
     let optimizedText = "";
     const providerCode = provider.provider_code;
 
+    console.log(`Calling AI provider: ${providerCode}, model: ${model}`);
+
     if (providerCode === "lovable") {
       // Use Lovable AI Gateway
+      console.log("Using Lovable AI Gateway...");
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -179,18 +182,22 @@ Return ONLY the optimized merge prompt text, nothing else.`;
         }),
       });
 
+      console.log(`Lovable AI response status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Lovable AI error response: ${errorText}`);
         if (response.status === 429) {
           throw new Error("Rate limit exceeded. Please try again later.");
         }
         if (response.status === 402) {
           throw new Error("Lovable AI credits exhausted. Please add credits.");
         }
-        const errorText = await response.text();
         throw new Error(`Lovable AI error: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log("Lovable AI response received successfully");
       optimizedText = data.choices?.[0]?.message?.content || "";
     } else if (providerCode === "openai" || providerCode === "deepseek" || providerCode === "perplexity") {
       const baseUrl = provider.base_url || "https://api.openai.com/v1";
