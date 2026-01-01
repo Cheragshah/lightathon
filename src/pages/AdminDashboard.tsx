@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle, ChevronDown, ChevronRight, IndianRupee, Layers, Play } from "lucide-react";
+import { Users, FileText, DollarSign, Activity, Download, BarChart3, FileText as LogIcon, X, StopCircle, Settings, Zap, AlertCircle, BookOpen, Key, Mail, UserCircle, ChevronDown, ChevronRight, IndianRupee, Layers, Play, Sparkles } from "lucide-react";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { UserProfilesTable } from "@/components/admin/UserProfilesTable";
 import { exportToCSV } from "@/utils/exportAdminData";
@@ -31,6 +31,7 @@ import { BatchManager } from "@/components/admin/BatchManager";
 import { CategoryAssignments } from "@/components/admin/CategoryAssignments";
 import { CodexGenerationControl } from "@/components/admin/CodexGenerationControl";
 import { PersonaRunsProgressDashboard } from "@/components/admin/PersonaRunsProgressDashboard";
+import { LightathonManager } from "@/components/admin/LightathonManager";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -385,6 +386,12 @@ export default function AdminDashboard() {
                 <span className="hidden xs:inline">Logs</span>
               </TabsTrigger>
               {isAdmin && (
+                <TabsTrigger value="lightathon" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Lightathon</span>
+                </TabsTrigger>
+              )}
+              {isAdmin && (
                 <TabsTrigger value="configuration" className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
                   <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   <span className="hidden xs:inline">Config</span>
@@ -571,6 +578,12 @@ export default function AdminDashboard() {
                 <QuestionnaireQuestionsManager />
               </TabsContent>
             </Tabs>
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+            <TabsContent value="lightathon">
+              <LightathonManager />
             </TabsContent>
           )}
         </Tabs>
