@@ -122,3 +122,9 @@ verify_jwt = false
 
 [functions.admin-resync-codexes]
 verify_jwt = false
+
+[functions.admin-start-lightathon]
+verify_jwt = false
+
+[functions.lightathon-daily-unlock]
+verify_jwt = false
