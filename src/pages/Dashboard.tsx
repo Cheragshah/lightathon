@@ -485,8 +485,8 @@ export default function Dashboard() {
                         </div>
                       </CardContent>
                     </Card>
-                    {/* Lightathon card appears next to completed persona runs */}
-                    {run.status === 'completed' && user && (
+                    {/* Lightathon card - shows for any run if user is enrolled (card handles enrollment check) */}
+                    {user && (
                       <LightathonCard key={`lightathon-${run.id}`} userId={user.id} personaRunId={run.id} />
                     )}
                   </>
