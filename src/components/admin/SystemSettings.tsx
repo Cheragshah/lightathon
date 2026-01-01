@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Save, Loader2, User, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Settings, Save, Loader2, User, Eye, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -65,6 +66,9 @@ export const SystemSettings = () => {
   const [selectedCodex, setSelectedCodex] = useState<string>("");
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [loadingPrompts, setLoadingPrompts] = useState(false);
+  
+  // Optimize state
+  const [optimizingPersona, setOptimizingPersona] = useState(false);
   
   const { toast } = useToast();
 
@@ -267,6 +271,48 @@ export const SystemSettings = () => {
       title: "Prompt reset",
       description: "The prompt has been reset to default. Click Save to apply.",
     });
+  };
+
+  const handleOptimizePersonaPrompt = async () => {
+    if (!globalPersonaPrompt.trim()) {
+      toast({
+        title: "No prompt to optimize",
+        description: "Please enter a persona prompt first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOptimizingPersona(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("optimize-text", {
+        body: { 
+          text: globalPersonaPrompt, 
+          type: "prompt" 
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.optimizedText) {
+        setGlobalPersonaPrompt(data.optimizedText);
+        sonnerToast.success("Persona prompt optimized! Click Save to apply changes.");
+      } else {
+        throw new Error("No optimized text returned");
+      }
+    } catch (error: any) {
+      console.error("Error optimizing persona prompt:", error);
+      toast({
+        title: "Optimization failed",
+        description: error.message || "Failed to optimize persona prompt",
+        variant: "destructive",
+      });
+    } finally {
+      setOptimizingPersona(false);
+    }
   };
 
   // Load codex prompts when preview is opened
@@ -518,7 +564,7 @@ export const SystemSettings = () => {
             The AI will speak as the persona defined here, directly addressing the user.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={handleSavePersonaPrompt} disabled={savingPersona}>
             {savingPersona ? (
               <>
@@ -529,6 +575,23 @@ export const SystemSettings = () => {
               <>
                 <Save className="h-4 w-4 mr-2" />
                 Save Persona Prompt
+              </>
+            )}
+          </Button>
+          <Button 
+            variant="secondary" 
+            onClick={handleOptimizePersonaPrompt} 
+            disabled={optimizingPersona || !globalPersonaPrompt.trim()}
+          >
+            {optimizingPersona ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Optimizing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Optimize with AI
               </>
             )}
           </Button>
