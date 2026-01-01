@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.verify-tagmango-token]
 verify_jwt = false
+
+[functions.optimize-text]
+verify_jwt = false
+
+[functions.test-ai-provider]
+verify_jwt = false
+
+[functions.save-ai-provider-key]
+verify_jwt = false
+
+[functions.fetch-provider-models]
+verify_jwt = false
