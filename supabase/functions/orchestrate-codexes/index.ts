@@ -17,9 +17,12 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { personaRunId } = await req.json();
+    const { personaRunId, codexId } = await req.json();
 
     console.log("Starting orchestration for persona run:", personaRunId);
+    if (codexId) {
+      console.log("🎯 Targeting specific codex:", codexId);
+    }
 
     // Update persona run status
     await supabase
@@ -27,15 +30,21 @@ serve(async (req) => {
       .update({ status: "generating", started_at: new Date().toISOString() })
       .eq("id", personaRunId);
 
-    // Get all codexes for this run with dependency info
-    const { data: codexes, error: codexError } = await supabase
+    // Build query for codexes - filter by specific codexId if provided
+    let codexQuery = supabase
       .from("codexes")
       .select(`
         *,
         codex_prompt:codex_prompts!inner(id, depends_on_codex_id, depends_on_transcript)
       `)
-      .eq("persona_run_id", personaRunId)
-      .order("codex_order", { ascending: true });
+      .eq("persona_run_id", personaRunId);
+    
+    // If codexId is provided, only get that specific codex
+    if (codexId) {
+      codexQuery = codexQuery.eq("id", codexId);
+    }
+    
+    const { data: codexes, error: codexError } = await codexQuery.order("codex_order", { ascending: true });
 
     if (codexError || !codexes) {
       throw new Error("Failed to load codexes");
@@ -50,7 +59,7 @@ serve(async (req) => {
         skippedCodexes.map(c => c.codex_name));
     }
 
-    console.log(`Found ${validCodexes.length} codexes to generate`);
+    console.log(`Found ${validCodexes.length} codexes to generate${codexId ? ' (single codex mode)' : ''}`);
 
     // Get persona run data including transcript
     const { data: personaRun } = await supabase
