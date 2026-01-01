@@ -68,15 +68,11 @@ interface CodexPrompt {
   codex_name: string;
   display_order: number;
   is_active: boolean;
+  primary_provider_id: string | null;
+  primary_model: string | null;
 }
 
-interface AIProvider {
-  id: string;
-  name: string;
-  is_active: boolean;
-  available_models: any;
-  default_model: string | null;
-}
+// AIProvider interface removed - AI config now comes from codex_prompts
 
 interface QueueItem {
   id: string;
@@ -97,14 +93,13 @@ export const CodexGenerationControl = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [personaRuns, setPersonaRuns] = useState<PersonaRun[]>([]);
   const [codexPrompts, setCodexPrompts] = useState<CodexPrompt[]>([]);
-  const [providers, setProviders] = useState<AIProvider[]>([]);
+  // providers state removed - AI provider comes from codex_prompts
   const [queue, setQueue] = useState<QueueItem[]>([]);
   
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedCodexIds, setSelectedCodexIds] = useState<string[]>([]);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<string>("");
+  // AI provider/model now comes from codex_prompts configuration
   
   // New filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,44 +128,28 @@ export const CodexGenerationControl = () => {
     }
   }, [selectedBatchId, batches, users]);
 
-  useEffect(() => {
-    if (selectedProviderId) {
-      const provider = providers.find(p => p.id === selectedProviderId);
-      if (provider?.default_model) {
-        setSelectedModel(provider.default_model);
-      } else {
-        setSelectedModel("");
-      }
-    }
-  }, [selectedProviderId, providers]);
+  // AI provider selection removed - uses codex_prompts configuration
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      const [batchesRes, usersRes, codexRes, providersRes, personaRunsRes] = await Promise.all([
+      const [batchesRes, usersRes, codexRes, personaRunsRes] = await Promise.all([
         supabase.from("batches").select("id, batch_name").eq("is_active", true).order("batch_name"),
         supabase.from("profiles").select("id, first_name, last_name, email, batch"),
-        supabase.from("codex_prompts").select("id, codex_name, display_order, is_active").eq("is_active", true).order("display_order"),
-        supabase.from("ai_providers").select("id, name, is_active, available_models, default_model").eq("is_active", true),
+        supabase.from("codex_prompts").select("id, codex_name, display_order, is_active, primary_provider_id, primary_model").eq("is_active", true).order("display_order"),
         supabase.from("persona_runs").select("id, user_id, status, created_at").order("created_at", { ascending: false }),
       ]);
 
       if (batchesRes.error) throw batchesRes.error;
       if (usersRes.error) throw usersRes.error;
       if (codexRes.error) throw codexRes.error;
-      if (providersRes.error) throw providersRes.error;
       if (personaRunsRes.error) throw personaRunsRes.error;
 
       setBatches(batchesRes.data || []);
       setUsers(usersRes.data || []);
       setCodexPrompts(codexRes.data || []);
-      setProviders(providersRes.data || []);
       setPersonaRuns(personaRunsRes.data || []);
-
-      if (providersRes.data && providersRes.data.length > 0 && !selectedProviderId) {
-        setSelectedProviderId(providersRes.data[0].id);
-      }
 
       await fetchQueue();
     } catch (error: any) {
@@ -216,24 +195,22 @@ export const CodexGenerationControl = () => {
       toast.error("Please select at least one codex");
       return;
     }
-    if (!selectedProviderId || !selectedModel) {
-      toast.error("Please select an AI provider and model");
-      return;
-    }
 
     setTriggering(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Build queue items using each codex's configured AI provider/model
       const queueItems = [];
       for (const userId of selectedUserIds) {
         for (const codexId of selectedCodexIds) {
+          const codexPrompt = codexPrompts.find(c => c.id === codexId);
           queueItems.push({
             user_id: userId,
             codex_prompt_id: codexId,
             batch_id: selectedBatchId && selectedBatchId !== "all" ? selectedBatchId : null,
-            ai_provider_id: selectedProviderId,
-            ai_model: selectedModel,
+            ai_provider_id: codexPrompt?.primary_provider_id || null,
+            ai_model: codexPrompt?.primary_model || null,
             triggered_by: user?.id,
             status: "pending",
           });
@@ -412,18 +389,7 @@ export const CodexGenerationControl = () => {
     }
   };
 
-  const getAvailableModels = (): Array<{ id: string; name: string }> => {
-    const provider = providers.find(p => p.id === selectedProviderId);
-    if (!provider?.available_models) return [];
-    
-    if (Array.isArray(provider.available_models)) {
-      return provider.available_models.map((m: any) => ({
-        id: typeof m === 'string' ? m : m.id,
-        name: typeof m === 'string' ? m : m.name,
-      }));
-    }
-    return [];
-  };
+  // getAvailableModels removed - AI provider selection now comes from codex_prompts
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -740,47 +706,7 @@ export const CodexGenerationControl = () => {
             </CardContent>
           </Card>
 
-          {/* Step 3: Select AI Provider */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Step 3: Select AI Provider</CardTitle>
-              <CardDescription>Choose the AI provider and model for generation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Provider</label>
-                  <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {providers.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          {provider.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Model</label>
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailableModels().map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Note: AI Provider is configured in each codex prompt settings */}
 
           {/* Trigger Button */}
           <Button
