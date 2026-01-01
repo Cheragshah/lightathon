@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [personaRuns, setPersonaRuns] = useState<PersonaRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [unansweredCategories, setUnansweredCategories] = useState<string[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -55,6 +56,7 @@ export default function Dashboard() {
       if (session) {
         setUser(session.user);
         loadPersonaRuns(session.user.id);
+        loadUnansweredCategories(session.user.id);
       } else {
         navigate("/auth");
       }
@@ -64,6 +66,7 @@ export default function Dashboard() {
       if (session) {
         setUser(session.user);
         loadPersonaRuns(session.user.id);
+        loadUnansweredCategories(session.user.id);
       } else {
         setUser(null);
         navigate("/auth");
@@ -72,6 +75,109 @@ export default function Dashboard() {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const loadUnansweredCategories = async (userId: string) => {
+    try {
+      // Get user's existing answers
+      const { data: existingRuns } = await supabase
+        .from("persona_runs")
+        .select("answers_json")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const answeredQuestionIds = new Set<string>();
+      if (existingRuns?.[0]?.answers_json) {
+        const answersJson = existingRuns[0].answers_json as Record<string, any>;
+        Object.values(answersJson).forEach((entry: any) => {
+          if (entry.question_id) {
+            answeredQuestionIds.add(entry.question_id);
+          }
+        });
+      }
+
+      // Get user's enabled categories
+      const { data: userAssignments } = await supabase
+        .from("user_category_assignments")
+        .select("category_id, is_enabled")
+        .eq("user_id", userId);
+
+      // Get batch info
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("batch")
+        .eq("id", userId)
+        .single();
+
+      let enabledCategoryIds: string[] = [];
+
+      if (profile?.batch) {
+        const { data: batchData } = await supabase
+          .from("batches")
+          .select("id")
+          .eq("batch_name", profile.batch)
+          .eq("is_active", true)
+          .single();
+
+        if (batchData) {
+          const { data: batchAssignments } = await supabase
+            .from("questionnaire_assignments")
+            .select("category_id")
+            .eq("batch_id", batchData.id)
+            .eq("is_enabled", true);
+
+          enabledCategoryIds = (batchAssignments || []).map(a => a.category_id);
+        }
+      }
+
+      // Apply user overrides
+      const userOverrides = new Map<string, boolean>();
+      (userAssignments || []).forEach(a => {
+        userOverrides.set(a.category_id, a.is_enabled ?? true);
+      });
+
+      userOverrides.forEach((isEnabled, categoryId) => {
+        if (isEnabled && !enabledCategoryIds.includes(categoryId)) {
+          enabledCategoryIds.push(categoryId);
+        } else if (!isEnabled) {
+          enabledCategoryIds = enabledCategoryIds.filter(id => id !== categoryId);
+        }
+      });
+
+      if (enabledCategoryIds.length === 0) {
+        setUnansweredCategories([]);
+        return;
+      }
+
+      // Get questions for enabled categories
+      const { data: questionsData } = await supabase
+        .from("questionnaire_questions")
+        .select("id, category_id")
+        .eq("is_active", true)
+        .in("category_id", enabledCategoryIds);
+
+      // Get categories data
+      const { data: categoriesData } = await supabase
+        .from("questionnaire_categories")
+        .select("id, category_name")
+        .eq("is_active", true)
+        .in("id", enabledCategoryIds);
+
+      // Find categories with unanswered questions
+      const unansweredCats: string[] = [];
+      (categoriesData || []).forEach(category => {
+        const categoryQuestions = (questionsData || []).filter(q => q.category_id === category.id);
+        const hasUnanswered = categoryQuestions.some(q => !answeredQuestionIds.has(q.id));
+        if (hasUnanswered) {
+          unansweredCats.push(category.category_name);
+        }
+      });
+
+      setUnansweredCategories(unansweredCats);
+    } catch (err) {
+      console.error("Error loading unanswered categories:", err);
+    }
+  };
 
   const loadPersonaRuns = async (userId: string) => {
     setLoading(true);
@@ -212,6 +318,18 @@ export default function Dashboard() {
                     </Button>
                   );
                 }
+                
+                // Show category-specific button if there are unanswered categories
+                if (unansweredCategories.length > 0) {
+                  const categoryName = unansweredCategories[0];
+                  return (
+                    <Button size="lg" onClick={() => navigate("/questionnaire")} className="gap-2">
+                      <Plus className="h-5 w-5" />
+                      Answer {categoryName} Questionnaire
+                    </Button>
+                  );
+                }
+                
                 return (
                   <Button size="lg" onClick={() => navigate("/questionnaire")} className="gap-2">
                     <Plus className="h-5 w-5" />
