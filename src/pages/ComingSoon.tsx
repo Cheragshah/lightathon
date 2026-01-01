@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { LightBeamBackground } from "@/components/LightBeamBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,22 @@ interface TimeLeft {
 }
 
 const ComingSoon = () => {
+  const navigate = useNavigate();
+  const [logoClickCount, setLogoClickCount] = useState(0);
+
+  // Handle triple-click on logo to reveal admin login
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+    
+    if (newCount >= 3) {
+      navigate('/auth');
+      setLogoClickCount(0);
+    }
+    
+    // Reset count after 2 seconds of no clicks
+    setTimeout(() => setLogoClickCount(0), 2000);
+  };
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -181,9 +198,15 @@ const ComingSoon = () => {
           )}
         </div>
 
-        {/* Logo */}
+        {/* Logo - Triple click for admin access */}
         <div className="flex justify-center pt-4">
-          <img src={logo} alt="Inner Clarity HUB" className="h-20 w-20 rounded-full" />
+          <img 
+            src={logo} 
+            alt="Inner Clarity HUB" 
+            className="h-20 w-20 rounded-full cursor-pointer transition-transform hover:scale-105" 
+            onClick={handleLogoClick}
+            title={logoClickCount > 0 ? `${3 - logoClickCount} more clicks...` : undefined}
+          />
         </div>
 
         {/* Footer */}
