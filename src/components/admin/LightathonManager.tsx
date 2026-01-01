@@ -43,7 +43,7 @@ export const LightathonManager = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get all completed persona runs with their users
+      // Get all persona runs with their users (not filtering by status since codex might be ready before run completes)
       const { data: personaRuns, error: runsError } = await supabase
         .from('persona_runs')
         .select(`
@@ -56,8 +56,7 @@ export const LightathonManager = () => {
             email,
             full_name
           )
-        `)
-        .eq('status', 'completed');
+        `);
 
       if (runsError) throw runsError;
 
