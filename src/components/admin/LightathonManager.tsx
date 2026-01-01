@@ -43,79 +43,71 @@ export const LightathonManager = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get all persona runs with their users (not filtering by status since codex might be ready before run completes)
+      // Get all persona runs
       const { data: personaRuns, error: runsError } = await supabase
         .from('persona_runs')
-        .select(`
-          id,
-          title,
-          user_id,
-          status,
-          profiles!inner (
-            id,
-            email,
-            full_name
-          )
-        `);
+        .select('id, title, user_id, status');
 
       if (runsError) throw runsError;
 
-      // Check which runs have the Lightathon codex
+      // Get all codexes that are "21 Days Lightathon" and ready
+      const { data: lightathonCodexes, error: codexError } = await supabase
+        .from('codexes')
+        .select('id, persona_run_id')
+        .ilike('codex_name', '%21 Days Lightathon%')
+        .eq('status', 'ready');
+
+      if (codexError) throw codexError;
+
+      // Get all existing enrollments
+      const { data: existingEnrollments, error: enrollError } = await supabase
+        .from('lightathon_enrollments')
+        .select('id, user_id, persona_run_id, started_at, is_active');
+
+      if (enrollError) throw enrollError;
+
+      // Get all user profiles
+      const userIds = [...new Set((personaRuns || []).map(r => r.user_id))];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds.length > 0 ? userIds : ['00000000-0000-0000-0000-000000000000']);
+
+      if (profilesError) throw profilesError;
+
+      // Create lookup maps
+      const codexRunIds = new Set((lightathonCodexes || []).map(c => c.persona_run_id));
+      const enrollmentMap = new Map((existingEnrollments || []).map(e => [`${e.user_id}-${e.persona_run_id}`, e]));
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      // Build eligible users list
       const eligibleList: EligibleUser[] = [];
       
       for (const run of personaRuns || []) {
-        // Check if this run has a 21 Days Lightathon codex
-        const { data: codex } = await supabase
-          .from('codexes')
-          .select('id')
-          .eq('persona_run_id', run.id)
-          .ilike('codex_name', '%21 Days Lightathon%')
-          .eq('status', 'ready')
-          .single();
+        const profile = profileMap.get(run.user_id);
+        const hasLightathonCodex = codexRunIds.has(run.id);
+        const enrollment = enrollmentMap.get(`${run.user_id}-${run.id}`);
 
-        // Check if already enrolled
-        const { data: enrollment } = await supabase
-          .from('lightathon_enrollments')
-          .select('id')
-          .eq('user_id', run.user_id)
-          .eq('persona_run_id', run.id)
-          .single();
-
-        const profile = run.profiles as any;
         eligibleList.push({
           id: run.user_id,
           email: profile?.email || 'N/A',
           full_name: profile?.full_name || 'Unknown',
           persona_run_id: run.id,
           persona_run_title: run.title,
-          has_lightathon_codex: !!codex,
+          has_lightathon_codex: hasLightathonCodex,
           already_enrolled: !!enrollment
         });
       }
 
       setEligibleUsers(eligibleList);
 
-      // Get active enrollments with progress
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from('lightathon_enrollments')
-        .select(`
-          id,
-          user_id,
-          started_at,
-          is_active,
-          profiles!inner (
-            email,
-            full_name
-          )
-        `)
-        .order('started_at', { ascending: false });
-
-      if (enrollmentsError) throw enrollmentsError;
-
-      // Get progress for each enrollment
+      // Build active enrollments list
       const enrollmentsList: ActiveEnrollment[] = [];
       
-      for (const enrollment of enrollments || []) {
+      for (const enrollment of existingEnrollments || []) {
+        const profile = profileMap.get(enrollment.user_id);
+        
+        // Get progress for this enrollment
         const { data: progress } = await supabase
           .from('lightathon_daily_progress')
           .select('day_number, status')
@@ -124,7 +116,6 @@ export const LightathonManager = () => {
         const completedDays = progress?.filter(p => p.status === 'completed').length || 0;
         const currentDay = progress?.find(p => p.status === 'unlocked')?.day_number || completedDays + 1;
 
-        const profile = enrollment.profiles as any;
         enrollmentsList.push({
           id: enrollment.id,
           user_id: enrollment.user_id,
