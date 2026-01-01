@@ -148,7 +148,7 @@ serve(async (req) => {
             .from('persona_runs')
             .insert({
               user_id: userId,
-              title: 'Coach Persona (Admin Generated)',
+              title: 'Your Persona',
               answers_json: answersJson,
               status: 'generating',
               source_type: 'admin_triggered',
