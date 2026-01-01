@@ -216,7 +216,16 @@ serve(async (req) => {
             continue;
           }
 
-          // Create the codex
+          // Get the actual section count from codex_section_prompts
+          const { data: sectionPrompts, error: sectionError } = await supabase
+            .from('codex_section_prompts')
+            .select('id')
+            .eq('codex_prompt_id', codexPrompt.id)
+            .eq('is_active', true);
+          
+          const actualSectionCount = sectionPrompts?.length || 1;
+
+          // Create the codex with correct section count
           const { data: newCodex, error: codexError } = await supabase
             .from('codexes')
             .insert({
@@ -225,7 +234,7 @@ serve(async (req) => {
               codex_name: codexPrompt.codex_name,
               codex_order: codexPrompt.display_order,
               status: 'generating',
-              total_sections: 1, // Will be updated by section generation
+              total_sections: actualSectionCount,
               completed_sections: 0,
             })
             .select('id')
@@ -244,14 +253,14 @@ serve(async (req) => {
             continue;
           }
 
-          console.log(`Created codex ${newCodex.id} for ${codexPrompt.codex_name}`);
+          console.log(`Created codex ${newCodex.id} for ${codexPrompt.codex_name} with ${actualSectionCount} sections`);
 
-          // Trigger codex section generation via existing edge function
+          // Trigger codex section generation for THIS SPECIFIC CODEX ONLY
           try {
             const { error: generateError } = await supabase.functions.invoke('orchestrate-codexes', {
               body: { 
                 personaRunId,
-                codexId: newCodex.id,
+                codexId: newCodex.id, // Pass specific codexId to only generate this codex
                 aiModel: item.ai_model,
                 aiProviderId: item.ai_provider_id
               }
