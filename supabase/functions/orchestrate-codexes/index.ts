@@ -115,8 +115,7 @@ serve(async (req) => {
       return filtered;
     };
 
-    // Process codexes sequentially respecting dependencies
-    const SECTION_BATCH_SIZE = 5; // Process 5 sections at a time per codex
+        // Process codexes respecting dependencies
     const completedCodexes = new Set<string>();
     
     // Pre-populate with already completed codexes
@@ -223,13 +222,14 @@ serve(async (req) => {
           console.log(`Using ${existingSections.length} existing sections for ${codex.codex_name}`);
         }
 
-        // Generate sections in controlled batches
+        // Generate sections in controlled batches (increased for scalability)
         let successCount = 0;
         let errorCount = 0;
+        const BATCH_SIZE = 10; // Use larger batch for faster parallel processing
 
-        for (let sectionIndex = 0; sectionIndex < codex.total_sections; sectionIndex += SECTION_BATCH_SIZE) {
+        for (let sectionIndex = 0; sectionIndex < codex.total_sections; sectionIndex += BATCH_SIZE) {
           const sectionBatch = [];
-          const batchEnd = Math.min(sectionIndex + SECTION_BATCH_SIZE, codex.total_sections);
+          const batchEnd = Math.min(sectionIndex + BATCH_SIZE, codex.total_sections);
           
           for (let idx = sectionIndex; idx < batchEnd; idx++) {
             sectionBatch.push(
