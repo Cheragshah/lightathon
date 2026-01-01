@@ -370,7 +370,7 @@ export default function PersonaRunView() {
 
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 break-words-safe">{personaRun.title}</h1>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 break-words-safe">Flow: Dense to Light OS</h1>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   Created {new Date(personaRun.created_at).toLocaleDateString()}
                 </p>
