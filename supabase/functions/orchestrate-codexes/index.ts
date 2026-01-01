@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCodexSectionNamesFromDB, getCompletedCodexContent, getDependencyCodexName, getCodexQuestionIds, getCodexDependencies, getDependencyCodexNames } from "../_shared/codex-db-helper.ts";
 
+// Declare EdgeRuntime for Supabase background tasks
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<any>) => void;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -417,6 +422,37 @@ serve(async (req) => {
         }
       }
     }
+
+    // Schedule a watchdog retry after 5 minutes to catch any stuck sections
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        // Wait 5 minutes before checking for stuck sections
+        await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
+        
+        console.log(`Watchdog: Checking for stuck sections in persona run ${personaRunId}`);
+        
+        const watchdogResponse = await fetch(`${supabaseUrl}/functions/v1/retry-pending-sections`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            personaRunId,
+            autoRetry: true
+          }),
+        });
+        
+        if (watchdogResponse.ok) {
+          const result = await watchdogResponse.json();
+          console.log(`Watchdog completed:`, result);
+        } else {
+          console.error("Watchdog retry failed:", await watchdogResponse.text());
+        }
+      } catch (watchdogError) {
+        console.error("Watchdog error:", watchdogError);
+      }
+    })());
 
     return new Response(
       JSON.stringify({ success: true, message: "Generation complete" }),

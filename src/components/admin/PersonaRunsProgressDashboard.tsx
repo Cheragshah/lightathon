@@ -49,6 +49,8 @@ export const PersonaRunsProgressDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [resyncing, setResyncing] = useState<string | null>(null);
   const [retriggering, setRetriggering] = useState<string | null>(null);
+  const [retryingPending, setRetryingPending] = useState<string | null>(null);
+  const [forcingComplete, setForcingComplete] = useState<string | null>(null);
   const [isRecentRunsOpen, setIsRecentRunsOpen] = useState(false);
 
   useEffect(() => {
@@ -228,6 +230,90 @@ export const PersonaRunsProgressDashboard = () => {
     }
   };
 
+  const handleRetryPendingSections = async (personaRunId: string) => {
+    try {
+      setRetryingPending(personaRunId);
+      
+      const { data, error } = await supabase.functions.invoke('retry-pending-sections', {
+        body: { personaRunId }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Retry complete: ${data?.retried || 0} sections retried, ${data?.errors || 0} errors`);
+      loadRuns();
+    } catch (error) {
+      console.error('Error retrying pending sections:', error);
+      toast.error('Failed to retry pending sections');
+    } finally {
+      setRetryingPending(null);
+    }
+  };
+
+  const handleForceComplete = async (personaRunId: string) => {
+    try {
+      setForcingComplete(personaRunId);
+      
+      // Mark all stuck sections as error
+      const { data: codexes } = await supabase
+        .from('codexes')
+        .select('id')
+        .eq('persona_run_id', personaRunId);
+
+      if (codexes) {
+        for (const codex of codexes) {
+          // Mark pending/generating sections as error
+          await supabase
+            .from('codex_sections')
+            .update({ 
+              status: 'error',
+              error_message: 'Force completed by admin'
+            })
+            .eq('codex_id', codex.id)
+            .in('status', ['pending', 'generating']);
+
+          // Get section counts to determine codex status
+          const { data: sections } = await supabase
+            .from('codex_sections')
+            .select('status')
+            .eq('codex_id', codex.id);
+
+          const completed = sections?.filter(s => s.status === 'completed').length || 0;
+          const errors = sections?.filter(s => s.status === 'error').length || 0;
+          const total = sections?.length || 0;
+
+          // Update codex status
+          if (total > 0) {
+            await supabase
+              .from('codexes')
+              .update({ 
+                status: errors > 0 ? 'ready_with_errors' : 'ready',
+                completed_sections: completed
+              })
+              .eq('id', codex.id);
+          }
+        }
+      }
+
+      // Mark persona run as completed
+      await supabase
+        .from('persona_runs')
+        .update({ 
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', personaRunId);
+
+      toast.success('Persona run force completed');
+      loadRuns();
+    } catch (error) {
+      console.error('Error force completing:', error);
+      toast.error('Failed to force complete');
+    } finally {
+      setForcingComplete(null);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -305,7 +391,35 @@ export const PersonaRunsProgressDashboard = () => {
                           </span>
                         </div>
                       </div>
-                      {getStatusBadge(run.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(run.status)}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRetryPendingSections(run.id)}
+                          disabled={retryingPending === run.id}
+                        >
+                          {retryingPending === run.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4" />
+                          )}
+                          <span className="ml-1 hidden md:inline">Retry Stuck</span>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleForceComplete(run.id)}
+                          disabled={forcingComplete === run.id}
+                        >
+                          {forcingComplete === run.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                          <span className="ml-1 hidden md:inline">Force Complete</span>
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Overall Progress */}
@@ -426,13 +540,28 @@ export const PersonaRunsProgressDashboard = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleRetryPendingSections(run.id)}
+                            disabled={retryingPending === run.id}
+                            title="Retry any stuck sections"
+                          >
+                            {retryingPending === run.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                            <span className="ml-1 hidden md:inline">Retry Stuck</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleResyncCodexes(run.id)}
                             disabled={resyncing === run.id}
+                            title="Resync codexes with prompts"
                           >
                             {resyncing === run.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <RefreshCw className="h-4 w-4" />
+                              <Zap className="h-4 w-4" />
                             )}
                             <span className="ml-1 hidden md:inline">Resync</span>
                           </Button>
