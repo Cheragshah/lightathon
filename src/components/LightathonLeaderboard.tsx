@@ -30,6 +30,25 @@ export const LightathonLeaderboard = () => {
 
   useEffect(() => {
     loadLeaderboard();
+
+    // Set up real-time subscription for live updates
+    const channel = supabase
+      .channel('lightathon-leaderboard')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lightathon_daily_progress' },
+        () => loadLeaderboard()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lightathon_enrollments' },
+        () => loadLeaderboard()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const calculateStreak = (completedDays: number[]): { current: number; longest: number } => {

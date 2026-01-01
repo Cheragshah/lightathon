@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Sparkles, Play, Users, CheckCircle2, Clock, RefreshCw } from "lucide-react";
+import { Sparkles, Play, Users, CheckCircle2, Clock, RefreshCw, Trophy } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LightathonLeaderboard } from "@/components/LightathonLeaderboard";
 
 interface EligibleUser {
   id: string;
@@ -379,6 +380,22 @@ export const LightathonManager = () => {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* Leaderboard Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Lightathon Leaderboard
+          </CardTitle>
+          <CardDescription>
+            View participant rankings by batch, days completed, and streak
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LightathonLeaderboard />
         </CardContent>
       </Card>
     </div>
