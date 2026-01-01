@@ -343,33 +343,34 @@ export default function Dashboard() {
         initialData={profile || undefined}
       />
       
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
+          {/* Header - Stack on mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2 break-words-safe">
                 Your Persona  
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Create and manage your Coach Persona Architect blueprints
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               {(() => {
                 const awaitingRun = getAwaitingAnswersRun();
                 if (awaitingRun) {
                   const codexNames = getAwaitingCodexNames(awaitingRun);
                   return (
                     <Button 
-                      size="lg" 
+                      size="default"
                       onClick={() => navigate(`/continue-questionnaire/${awaitingRun.id}`)} 
-                      className="gap-2"
+                      className="gap-2 w-full sm:w-auto"
                     >
-                      <PlayCircle className="h-5 w-5" />
-                      Continue Questionnaire
+                      <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="truncate">Continue Questionnaire</span>
                       {codexNames.length > 0 && (
-                        <Badge variant="secondary" className="ml-2">
-                          {codexNames.length} pending
+                        <Badge variant="secondary" className="ml-1 flex-shrink-0">
+                          {codexNames.length}
                         </Badge>
                       )}
                     </Button>
@@ -380,23 +381,23 @@ export default function Dashboard() {
                 if (unansweredCategories.length > 0) {
                   const categoryName = unansweredCategories[0];
                   return (
-                    <Button size="lg" onClick={() => navigate("/questionnaire")} className="gap-2">
-                      <Plus className="h-5 w-5" />
-                      Answer {categoryName} Questionnaire
+                    <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
+                      <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="truncate">Answer {categoryName}</span>
                     </Button>
                   );
                 }
                 
                 return (
-                  <Button size="lg" onClick={() => navigate("/questionnaire")} className="gap-2">
-                    <Plus className="h-5 w-5" />
-                    Answer Questionnaire
+                  <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <span className="truncate">Answer Questionnaire</span>
                   </Button>
                 );
               })()}
-              <Button size="lg" variant="outline" onClick={() => navigate("/transcript-upload")} className="gap-2">
-                <FileText className="h-5 w-5" />
-                Upload Transcript
+              <Button size="default" variant="outline" onClick={() => navigate("/transcript-upload")} className="gap-2 w-full sm:w-auto">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                <span className="truncate">Upload Transcript</span>
               </Button>
             </div>
           </div>
@@ -427,7 +428,7 @@ export default function Dashboard() {
               {personaRuns.some(run => run.status === "generating") && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Generation in Progress</h2>
-                  <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                     {personaRuns
                       .filter(run => run.status === "generating")
                       .map(run => (
@@ -442,16 +443,16 @@ export default function Dashboard() {
               )}
 
               {/* Show all persona runs */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {personaRuns.map((run) => (
                   <Card key={run.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg line-clamp-2">{run.title}</CardTitle>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">{run.title}</CardTitle>
                         {getStatusBadge(run.status)}
                       </div>
-                      <CardDescription className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4" />
+                      <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                         {new Date(run.created_at).toLocaleDateString()}
                       </CardDescription>
                     </CardHeader>
@@ -460,14 +461,14 @@ export default function Dashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 text-xs sm:text-sm"
                           onClick={() => navigate(`/persona-run/${run.id}`)}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                           View
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </CardContent>

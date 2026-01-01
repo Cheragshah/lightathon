@@ -352,39 +352,44 @@ export default function PersonaRunView() {
   const progressPercentage = totalCodexes > 0 ? (completedCodexes / totalCodexes) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navigation isAuthenticated={!!user} />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <Button
               variant="ghost"
               onClick={() => navigate("/dashboard")}
-              className="mb-4"
+              className="mb-3 sm:mb-4 -ml-2 text-sm"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-1 sm:mr-2" />
               Back to Dashboard
             </Button>
 
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-4xl font-bold mb-2">{personaRun.title}</h1>
-                <p className="text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 break-words-safe">{personaRun.title}</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Created {new Date(personaRun.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 {personaRun.status === 'completed' && (
                   <>
-                    <Button onClick={handleDownloadAllPDFs} disabled={downloadingZip}>
+                    <Button 
+                      onClick={handleDownloadAllPDFs} 
+                      disabled={downloadingZip}
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                    >
                       {downloadingZip ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                       ) : (
-                        <Download className="mr-2 h-4 w-4" />
+                        <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       )}
-                      Download All
+                      <span className="text-xs sm:text-sm">Download All</span>
                     </Button>
                     <ShareDialog personaRunId={id!} />
                   </>
@@ -394,28 +399,28 @@ export default function PersonaRunView() {
           </div>
 
           {/* Progress Card */}
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Generation Progress</CardTitle>
+          <Card className="mb-6 sm:mb-8">
+            <CardHeader className="p-3 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base sm:text-lg">Generation Progress</CardTitle>
                 {personaRun.status === 'generating' && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    Live Updates
+                    <span className="hidden xs:inline">Live Updates</span>
                   </div>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span>{completedCodexes} of {totalCodexes} Codexes Complete</span>
                   <span className="font-semibold">{Math.round(progressPercentage)}%</span>
                 </div>
-                <Progress value={progressPercentage} className="h-3" />
+                <Progress value={progressPercentage} className="h-2 sm:h-3" />
                 
                 {personaRun.status === 'generating' && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
                     Generation in progress... This page updates automatically as sections complete.
                   </p>
                 )}
@@ -424,9 +429,9 @@ export default function PersonaRunView() {
           </Card>
 
           {/* Codex Grid */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Your Codexes</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4">Your Codexes</h2>
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {codexes.map((codex, index) => {
                 const Icon = getCodexIcon(codex.codex_name);
                 const color = getCodexColor(index);
