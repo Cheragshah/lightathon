@@ -9,12 +9,14 @@ import { exportCodexConfigurations } from "@/utils/exportCodexData";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EditCodexDialog } from "./EditCodexDialog";
 import { BulkDependencyDialog } from "./BulkDependencyDialog";
 import { CodexDependencyGraph } from "./CodexDependencyGraph";
 import { CodexDependencyDetailsDialog } from "./CodexDependencyDetailsDialog";
 import { BulkQuestionMappingDialog } from "./BulkQuestionMappingDialog";
 import { CodexVersionHistoryDialog } from "./CodexVersionHistoryDialog";
+import { BulkCodexActions } from "./BulkCodexActions";
 
 export const CodexPromptsManager = () => {
   const [codexes, setCodexes] = useState<any[]>([]);
@@ -30,6 +32,7 @@ export const CodexPromptsManager = () => {
   const [showBulkQuestionMapping, setShowBulkQuestionMapping] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [selectedCodexForHistory, setSelectedCodexForHistory] = useState<any>(null);
+  const [selectedCodexIds, setSelectedCodexIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -175,6 +178,22 @@ export const CodexPromptsManager = () => {
     codex.codex_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const toggleCodexSelection = (codexId: string) => {
+    setSelectedCodexIds(prev =>
+      prev.includes(codexId)
+        ? prev.filter(id => id !== codexId)
+        : [...prev, codexId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCodexIds.length === filteredCodexes.length) {
+      setSelectedCodexIds([]);
+    } else {
+      setSelectedCodexIds(filteredCodexes.map(c => c.id));
+    }
+  };
+
   if (loading) return <Loader2 className="animate-spin" />;
 
   return (
@@ -222,6 +241,12 @@ export const CodexPromptsManager = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedCodexIds.length === filteredCodexes.length && filteredCodexes.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Order</TableHead>
                 <TableHead>Codex Name</TableHead>
                 <TableHead>Sections</TableHead>
@@ -234,6 +259,12 @@ export const CodexPromptsManager = () => {
             <TableBody>
               {filteredCodexes.map((codex) => (
                 <TableRow key={codex.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedCodexIds.includes(codex.id)}
+                      onCheckedChange={() => toggleCodexSelection(codex.id)}
+                    />
+                  </TableCell>
                   <TableCell>{codex.display_order}</TableCell>
                   <TableCell className="font-medium">{codex.codex_name}</TableCell>
                   <TableCell>
@@ -310,6 +341,16 @@ export const CodexPromptsManager = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <BulkCodexActions
+        selectedCodexIds={selectedCodexIds}
+        codexes={codexes}
+        onClearSelection={() => setSelectedCodexIds([])}
+        onComplete={() => {
+          loadCodexes();
+          setGraphRefreshKey(prev => prev + 1);
+        }}
+      />
 
       {editingCodex && (
         <EditCodexDialog
