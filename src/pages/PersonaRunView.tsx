@@ -69,6 +69,15 @@ const getCodexColor = (index: number): string => {
   return colors[index % colors.length];
 };
 
+// Define the preferred category display order
+const CATEGORY_DISPLAY_ORDER = [
+  'Generational Money Trauma',
+  'Money Leaks',
+  'Financial Ceiling',
+  'Money Wounds',
+  'Perfect Day Design'
+];
+
 // Helper function to parse and group answers by category
 const parseAnswersByCategory = (answersJson: Record<string, string | { question: string; answer: string; category: string }>) => {
   const grouped: Record<string, Array<{ key: string; question: string; answer: string }>> = {};
@@ -92,6 +101,29 @@ const parseAnswersByCategory = (answersJson: Record<string, string | { question:
   });
   
   return grouped;
+};
+
+// Helper to get sorted category entries
+const getSortedCategoryEntries = (grouped: Record<string, Array<{ key: string; question: string; answer: string }>>) => {
+  const entries = Object.entries(grouped);
+  
+  return entries.sort((a, b) => {
+    const indexA = CATEGORY_DISPLAY_ORDER.findIndex(cat => 
+      cat.toLowerCase() === a[0].toLowerCase()
+    );
+    const indexB = CATEGORY_DISPLAY_ORDER.findIndex(cat => 
+      cat.toLowerCase() === b[0].toLowerCase()
+    );
+    
+    // If both are in the order list, sort by their position
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    // If only A is in the list, A comes first
+    if (indexA !== -1) return -1;
+    // If only B is in the list, B comes first
+    if (indexB !== -1) return 1;
+    // If neither is in the list, sort alphabetically
+    return a[0].localeCompare(b[0]);
+  });
 };
 
 // Helper function to parse legacy transcript answers
@@ -518,7 +550,7 @@ export default function PersonaRunView() {
               </CardHeader>
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
-                  {Object.entries(parseAnswersByCategory(personaRun.answers_json)).map(([category, questions]) => (
+                  {getSortedCategoryEntries(parseAnswersByCategory(personaRun.answers_json)).map(([category, questions]) => (
                     <AccordionItem key={category} value={category}>
                       <AccordionTrigger className="text-left hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-4">
