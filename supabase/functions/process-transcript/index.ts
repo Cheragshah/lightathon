@@ -275,7 +275,7 @@ serve(async (req) => {
       .from("persona_runs")
       .insert({
         user_id: targetUserId,
-        title: "My Coach Persona (from Transcript)",
+        title: "Your Persona (from Transcript)",
         answers_json: answers,
         status: "pending",
         source_type: "transcript",
