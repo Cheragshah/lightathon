@@ -169,14 +169,19 @@ export default function Questionnaire() {
         .order("created_at", { ascending: false })
         .limit(1);
 
-      // Extract answered question IDs from existing answers
+      // Extract answered question IDs from existing answers (handle both old and new formats)
       const answeredQuestionIds = new Set<string>();
+      const answeredCategoryKeys = new Set<string>();
+      
       if (existingRuns?.[0]?.answers_json) {
         const answersJson = existingRuns[0].answers_json as Record<string, any>;
-        Object.values(answersJson).forEach((entry: any) => {
+        Object.entries(answersJson).forEach(([key, entry]: [string, any]) => {
+          // New format: has question_id
           if (entry.question_id) {
             answeredQuestionIds.add(entry.question_id);
           }
+          // Track all keys for old format matching
+          answeredCategoryKeys.add(key);
         });
       }
 
@@ -267,9 +272,27 @@ export default function Questionnaire() {
       if (questionsError) throw questionsError;
 
       // Filter out categories where ALL questions have already been answered
+      // Handle both new format (question_id) and old format (key pattern matching)
       const unansweredCategories = categoriesData.filter(category => {
         const categoryQuestions = questionsData.filter(q => q.category_id === category.id);
-        // Category has unanswered questions if any question is NOT in the answered set
+        
+        // Convert category name to key prefix for old format matching
+        // e.g., "Generational Money Story" -> "generational_money_story"
+        const categoryKeyPrefix = category.category_name
+          .toLowerCase()
+          .replace(/\s+/g, '_');
+        
+        // Count old-format answers for this category
+        const oldFormatAnsweredCount = Array.from(answeredCategoryKeys).filter(key => 
+          key.startsWith(categoryKeyPrefix)
+        ).length;
+        
+        // Check if fully answered via old format (key pattern matching)
+        if (oldFormatAnsweredCount >= categoryQuestions.length && categoryQuestions.length > 0) {
+          return false; // Category is fully answered via old format
+        }
+        
+        // Check if any question is unanswered via new format (question_id)
         const hasUnansweredQuestions = categoryQuestions.some(q => !answeredQuestionIds.has(q.id));
         return hasUnansweredQuestions;
       });
