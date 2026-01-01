@@ -124,7 +124,7 @@ serve(async (req) => {
       return filtered;
     };
 
-        // Process codexes respecting dependencies
+    // Process codexes respecting dependencies
     const completedCodexes = new Set<string>();
     
     // Pre-populate with already completed codexes
@@ -132,6 +132,28 @@ serve(async (req) => {
       if (codex.status === 'ready' || codex.status === 'ready_with_errors') {
         completedCodexes.add(codex.codex_name);
         console.log(`✅ ${codex.codex_name} already completed, adding to dependency set`);
+      }
+    }
+
+    // When in single-codex mode, check ALL dependencies from the database
+    if (codexId && validCodexes.length > 0) {
+      const targetCodex = validCodexes[0];
+      const dependsOn = codexDependencies.get(targetCodex.codex_name) || [];
+      
+      for (const depName of dependsOn) {
+        if (!completedCodexes.has(depName)) {
+          const { data: depCodex } = await supabase
+            .from("codexes")
+            .select("status")
+            .eq("persona_run_id", personaRunId)
+            .eq("codex_name", depName)
+            .single();
+          
+          if (depCodex && (depCodex.status === 'ready' || depCodex.status === 'ready_with_errors')) {
+            completedCodexes.add(depName);
+            console.log(`✅ ${depName} is ready in database, adding to dependency set`);
+          }
+        }
       }
     }
 
@@ -145,14 +167,34 @@ serve(async (req) => {
       // Check if this codex has dependencies that need to complete first
       const dependsOn = codexDependencies.get(codex.codex_name) || [];
       if (dependsOn.length > 0) {
-        // Wait for ALL dependencies to complete
+        // Wait for ALL dependencies to complete with database polling
         for (const depName of dependsOn) {
           if (!completedCodexes.has(depName)) {
             console.log(`⏸️ ${codex.codex_name} waiting for ${depName} to complete...`);
             let waitCount = 0;
-            while (!completedCodexes.has(depName) && waitCount < 60) {
-              await new Promise(resolve => setTimeout(resolve, 5000));
+            const MAX_WAIT = 30; // Reduced from 60 to 30 (1 minute instead of 5)
+            
+            while (!completedCodexes.has(depName) && waitCount < MAX_WAIT) {
+              // Poll database for dependency status
+              const { data: depStatus } = await supabase
+                .from("codexes")
+                .select("status")
+                .eq("persona_run_id", personaRunId)
+                .eq("codex_name", depName)
+                .single();
+              
+              if (depStatus && (depStatus.status === 'ready' || depStatus.status === 'ready_with_errors')) {
+                completedCodexes.add(depName);
+                console.log(`✅ ${depName} now ready (polled from database)`);
+                break;
+              }
+              
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Reduced from 5s to 2s
               waitCount++;
+            }
+            
+            if (!completedCodexes.has(depName)) {
+              console.warn(`⚠️ Timeout waiting for ${depName}, proceeding anyway`);
             }
           }
         }
