@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Search, GripVertical, FileText } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Search, GripVertical, FileText, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditQuestionDialog } from "./EditQuestionDialog";
@@ -63,6 +63,9 @@ interface Question {
   category_name?: string;
 }
 
+type SortField = "display_order" | "category_name" | "is_required";
+type SortDirection = "asc" | "desc";
+
 export function QuestionnaireQuestionsManager() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -76,6 +79,8 @@ export function QuestionnaireQuestionsManager() {
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>("display_order");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
     loadData();
@@ -272,11 +277,51 @@ export function QuestionnaireQuestionsManager() {
     })
   );
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategoryFilter === "all" || q.category_id === selectedCategoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground" />;
+    }
+    return sortDirection === "asc" 
+      ? <ArrowUp className="ml-1 h-3 w-3" />
+      : <ArrowDown className="ml-1 h-3 w-3" />;
+  };
+
+  const filteredQuestions = useMemo(() => {
+    const filtered = questions.filter(q => {
+      const matchesSearch = q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategoryFilter === "all" || q.category_id === selectedCategoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case "display_order":
+          comparison = a.display_order - b.display_order;
+          break;
+        case "category_name":
+          const catA = a.category_name || "";
+          const catB = b.category_name || "";
+          comparison = catA.localeCompare(catB);
+          break;
+        case "is_required":
+          comparison = (a.is_required === b.is_required) ? 0 : a.is_required ? -1 : 1;
+          break;
+      }
+      
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [questions, searchQuery, selectedCategoryFilter, sortField, sortDirection]);
 
   const toggleQuestionSelection = (questionId: string) => {
     setSelectedQuestionIds(prev =>
@@ -371,10 +416,34 @@ export function QuestionnaireQuestionsManager() {
                           />
                         </TableHead>
                         <TableHead className="w-12"></TableHead>
-                        <TableHead>Order</TableHead>
-                        <TableHead>Category</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleSort("display_order")}
+                        >
+                          <div className="flex items-center">
+                            Order
+                            <SortIcon field="display_order" />
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleSort("category_name")}
+                        >
+                          <div className="flex items-center">
+                            Category
+                            <SortIcon field="category_name" />
+                          </div>
+                        </TableHead>
                         <TableHead>Question</TableHead>
-                        <TableHead>Required</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => handleSort("is_required")}
+                        >
+                          <div className="flex items-center">
+                            Required
+                            <SortIcon field="is_required" />
+                          </div>
+                        </TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
