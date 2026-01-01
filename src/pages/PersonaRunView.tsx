@@ -71,8 +71,8 @@ const getCodexColor = (index: number): string => {
 
 // Define the preferred category display order
 const CATEGORY_DISPLAY_ORDER = [
-  'Generational Money Trauma',
-  'Money Leaks',
+  'Generational Money Story',
+  'Money Leak',
   'Financial Ceiling',
   'Money Wounds',
   'Perfect Day Design'
