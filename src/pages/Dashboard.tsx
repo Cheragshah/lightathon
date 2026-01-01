@@ -10,6 +10,7 @@ import { Plus, FileText, Calendar, Trash2, Eye, PlayCircle } from "lucide-react"
 import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { GenerationProgress } from "@/components/GenerationProgress";
+import { LightathonCard } from "@/components/LightathonCard";
 import type { User } from "@supabase/supabase-js";
 
 interface Codex {
@@ -452,32 +453,33 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Show all persona runs */}
+              {/* Show all persona runs with Lightathon cards */}
               <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {personaRuns.map((run) => (
-                  <Card key={run.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">Flow: Dense to LightOS</CardTitle>
-                        {getStatusBadge(run.status)}
-                      </div>
-                      <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
-                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        {new Date(run.created_at).toLocaleDateString()}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 text-xs sm:text-sm"
-                          onClick={() => navigate(`/persona-run/${run.id}`)}
-                        >
-                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
+                  <div key={run.id} className="contents">
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">Flow: Dense to LightOS</CardTitle>
+                          {getStatusBadge(run.status)}
+                        </div>
+                        <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          {new Date(run.created_at).toLocaleDateString()}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs sm:text-sm"
+                            onClick={() => navigate(`/persona-run/${run.id}`)}
+                          >
+                            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>

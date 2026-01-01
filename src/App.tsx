@@ -31,6 +31,7 @@ const CodexDetailView = lazy(() => import("./pages/CodexDetailView"));
 const SharedView = lazy(() => import("./pages/SharedView"));
 const TranscriptUpload = lazy(() => import("./pages/TranscriptUpload"));
 const Documentation = lazy(() => import("./pages/Documentation"));
+const Lightathon = lazy(() => import("./pages/Lightathon"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -88,6 +89,7 @@ const AnimatedRoutes = () => {
           <Route path="/codex/:id" element={<PageTransition><CodexDetailView /></PageTransition>} />
           <Route path="/share/:token" element={<PageTransition><SharedView /></PageTransition>} />
           <Route path="/persona/:personaId/codex/:codexType" element={<PageTransition><CodexView /></PageTransition>} />
+          <Route path="/lightathon/:enrollmentId" element={<PageTransition><Lightathon /></PageTransition>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
         </Routes>

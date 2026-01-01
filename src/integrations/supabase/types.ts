@@ -1037,6 +1037,86 @@ export type Database = {
         }
         Relationships: []
       }
+      lightathon_daily_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          day_number: number
+          enrollment_id: string
+          id: string
+          mission_content: string | null
+          mission_title: string | null
+          status: string
+          unlocked_at: string | null
+          updated_at: string
+          user_reflection: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          day_number: number
+          enrollment_id: string
+          id?: string
+          mission_content?: string | null
+          mission_title?: string | null
+          status?: string
+          unlocked_at?: string | null
+          updated_at?: string
+          user_reflection?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          day_number?: number
+          enrollment_id?: string
+          id?: string
+          mission_content?: string | null
+          mission_title?: string | null
+          status?: string
+          unlocked_at?: string | null
+          updated_at?: string
+          user_reflection?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lightathon_daily_progress_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "lightathon_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lightathon_enrollments: {
+        Row: {
+          created_at: string
+          enabled_by: string
+          id: string
+          is_active: boolean
+          persona_run_id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled_by: string
+          id?: string
+          is_active?: boolean
+          persona_run_id: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled_by?: string
+          id?: string
+          is_active?: boolean
+          persona_run_id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pdf_exports: {
         Row: {
           codex_id: string | null
