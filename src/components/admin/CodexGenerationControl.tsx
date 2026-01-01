@@ -196,6 +196,17 @@ export const CodexGenerationControl = () => {
       return;
     }
 
+    // Check for codexes without AI configuration
+    const codexesWithoutAI = selectedCodexIds
+      .map(id => codexPrompts.find(c => c.id === id))
+      .filter(c => c && (!c.primary_provider_id || !c.primary_model));
+    
+    if (codexesWithoutAI.length > 0) {
+      const names = codexesWithoutAI.map(c => c?.codex_name).join(", ");
+      toast.error(`The following codexes don't have an AI provider configured: ${names}. Please configure them in Codex Prompts Manager first.`);
+      return;
+    }
+
     setTriggering(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
