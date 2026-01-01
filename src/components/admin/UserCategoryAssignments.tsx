@@ -280,31 +280,36 @@ export function UserCategoryAssignments() {
 
         {/* Bulk Actions */}
         {selectedUsers.length > 0 && (
-          <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-            <span className="text-sm font-medium">
-              {selectedUsers.length} user(s) selected
+          <div className="p-3 bg-muted rounded-lg space-y-3">
+            <span className="text-sm font-medium block">
+              {selectedUsers.length} user(s) selected - Bulk enable/disable categories:
             </span>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {categories.map(category => (
-                <div key={category.id} className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkToggle(category.id, true)}
-                    disabled={saving}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-                    Enable {category.category_name}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkToggle(category.id, false)}
-                    disabled={saving}
-                  >
-                    <XCircle className="h-4 w-4 mr-1 text-red-500" />
-                    Disable
-                  </Button>
+                <div key={category.id} className="flex flex-col gap-1 p-2 bg-background rounded border">
+                  <span className="text-xs font-medium truncate">{category.category_name}</span>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-7 text-xs"
+                      onClick={() => handleBulkToggle(category.id, true)}
+                      disabled={saving}
+                    >
+                      <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                      Enable
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-7 text-xs"
+                      onClick={() => handleBulkToggle(category.id, false)}
+                      disabled={saving}
+                    >
+                      <XCircle className="h-3 w-3 mr-1 text-red-500" />
+                      Disable
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -312,21 +317,21 @@ export function UserCategoryAssignments() {
         )}
 
         {/* Users Table */}
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px]">
+                <TableHead className="w-[50px] sticky left-0 bg-background z-10">
                   <Checkbox
                     checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Batch</TableHead>
+                <TableHead className="min-w-[180px] sticky left-[50px] bg-background z-10">User</TableHead>
+                <TableHead className="min-w-[100px]">Batch</TableHead>
                 {categories.map(category => (
-                  <TableHead key={category.id} className="text-center">
-                    {category.category_name}
+                  <TableHead key={category.id} className="text-center min-w-[120px]">
+                    <span className="text-xs">{category.category_name}</span>
                   </TableHead>
                 ))}
               </TableRow>
@@ -341,16 +346,16 @@ export function UserCategoryAssignments() {
               ) : (
                 filteredUsers.map(user => (
                   <TableRow key={user.id}>
-                    <TableCell>
+                    <TableCell className="sticky left-0 bg-background z-10">
                       <Checkbox
                         checked={selectedUsers.includes(user.id)}
                         onCheckedChange={(checked) => handleSelectUser(user.id, !!checked)}
                       />
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{user.full_name || "No name"}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <TableCell className="sticky left-[50px] bg-background z-10">
+                      <div className="min-w-[160px]">
+                        <div className="font-medium truncate">{user.full_name || "No name"}</div>
+                        <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -364,7 +369,7 @@ export function UserCategoryAssignments() {
                       const assignment = getUserAssignment(user.id, category.id);
                       return (
                         <TableCell key={category.id} className="text-center">
-                          <div className="flex justify-center">
+                          <div className="flex flex-col items-center gap-1">
                             <Checkbox
                               checked={assignment === true}
                               onCheckedChange={(checked) => 
@@ -373,12 +378,12 @@ export function UserCategoryAssignments() {
                               disabled={saving}
                               className={assignment === null ? "opacity-50" : ""}
                             />
+                            {assignment === null && (
+                              <span className="text-[10px] text-muted-foreground">
+                                (batch)
+                              </span>
+                            )}
                           </div>
-                          {assignment === null && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              (uses batch)
-                            </div>
-                          )}
                         </TableCell>
                       );
                     })}
