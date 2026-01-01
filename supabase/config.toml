@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.generate-persona]
 verify_jwt = false
+
+[functions.admin-resync-codexes]
+verify_jwt = false

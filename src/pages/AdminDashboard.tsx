@@ -30,6 +30,7 @@ import { PricingBracketsManager } from "@/components/admin/PricingBracketsManage
 import { BatchManager } from "@/components/admin/BatchManager";
 import { CategoryAssignments } from "@/components/admin/CategoryAssignments";
 import { CodexGenerationControl } from "@/components/admin/CodexGenerationControl";
+import { PersonaRunsProgressDashboard } from "@/components/admin/PersonaRunsProgressDashboard";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -443,7 +444,10 @@ export default function AdminDashboard() {
 
           {isAdmin && (
             <TabsContent value="generation">
-              <CodexGenerationControl />
+              <div className="space-y-6">
+                <PersonaRunsProgressDashboard />
+                <CodexGenerationControl />
+              </div>
             </TabsContent>
           )}
 
