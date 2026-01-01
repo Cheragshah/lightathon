@@ -104,15 +104,16 @@ export async function getCodexSectionNamesFromDB(
 }
 
 // Get active codex configuration for creating persona runs
+// IMPORTANT: Always fetches the LATEST configuration from the database
 export async function getActiveCodexConfigFromDB(supabase: SupabaseClient) {
+  // First get all active codex prompts
   const { data: codexes, error } = await supabase
     .from('codex_prompts')
     .select(`
       id,
       codex_name,
       display_order,
-      depends_on_codex_id,
-      sections:codex_section_prompts(id)
+      depends_on_codex_id
     `)
     .eq('is_active', true)
     .order('display_order', { ascending: true });
@@ -122,14 +123,32 @@ export async function getActiveCodexConfigFromDB(supabase: SupabaseClient) {
     throw error;
   }
 
-  // Transform to codex configuration format
-  return (codexes || []).map(codex => ({
-    id: codex.id,
-    name: codex.codex_name,
-    order: codex.display_order,
-    sections: (codex.sections as any[]).filter(s => s.id).length,
-    dependsOnCodexId: codex.depends_on_codex_id
-  }));
+  // Get section counts separately to ensure we only count ACTIVE sections
+  const codexConfigs = [];
+  for (const codex of codexes || []) {
+    const { count, error: countError } = await supabase
+      .from('codex_section_prompts')
+      .select('id', { count: 'exact', head: true })
+      .eq('codex_prompt_id', codex.id)
+      .eq('is_active', true);
+
+    if (countError) {
+      console.error(`Error counting sections for ${codex.codex_name}:`, countError);
+    }
+
+    codexConfigs.push({
+      id: codex.id,
+      name: codex.codex_name,
+      order: codex.display_order,
+      sections: count || 0,
+      dependsOnCodexId: codex.depends_on_codex_id
+    });
+  }
+
+  console.log(`Loaded ${codexConfigs.length} active codex configs with sections:`, 
+    codexConfigs.map(c => `${c.name}: ${c.sections} sections`).join(', '));
+
+  return codexConfigs;
 }
 
 // Get completed codex content for use as dependency context
