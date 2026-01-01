@@ -106,12 +106,11 @@ serve(async (req) => {
 
     for (const [userId, items] of userQueueMap) {
       try {
-        // Check if user already has a pending persona run
+        // Check if user already has ANY persona run (use most recent)
         const { data: existingRun } = await supabase
           .from('persona_runs')
-          .select('id, answers_json')
+          .select('id, answers_json, status')
           .eq('user_id', userId)
-          .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
@@ -120,59 +119,41 @@ serve(async (req) => {
         let answersJson: any;
 
         if (existingRun) {
-          // Use existing pending run
+          // Use existing run - add new codex to it
           personaRunId = existingRun.id;
           answersJson = existingRun.answers_json;
-          console.log(`Using existing persona run ${personaRunId} for user ${userId}`);
+          console.log(`Using existing persona run ${personaRunId} (status: ${existingRun.status}) for user ${userId}`);
+          
+          // If run was completed, update it to generating status
+          if (existingRun.status === 'completed' || existingRun.status === 'ready') {
+            await supabase
+              .from('persona_runs')
+              .update({ 
+                status: 'generating',
+                started_at: new Date().toISOString()
+              })
+              .eq('id', personaRunId);
+            console.log(`Updated persona run ${personaRunId} status from ${existingRun.status} to generating`);
+          }
         } else {
-          // Get user's latest answers
-          const { data: latestRun } = await supabase
-            .from('persona_runs')
-            .select('answers_json')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (!latestRun?.answers_json) {
-            console.log(`No answers found for user ${userId}, skipping`);
-            // Mark queue items as failed
-            for (const item of items) {
-              await supabase
-                .from('codex_generation_queue')
-                .update({ 
-                  status: 'failed', 
-                  error_message: 'No questionnaire answers found for user',
-                  completed_at: new Date().toISOString()
-                })
-                .eq('id', item.id);
-            }
-            continue;
+          // No existing run - need to create one
+          // First check if we have answers from somewhere
+          console.log(`No existing persona run for user ${userId}, creating new one`);
+          
+          // For admin-triggered without existing run, we need the user to have answered questions
+          // Mark queue items as failed since we have no answers
+          console.log(`No answers found for user ${userId}, skipping`);
+          for (const item of items) {
+            await supabase
+              .from('codex_generation_queue')
+              .update({ 
+                status: 'failed', 
+                error_message: 'No existing persona run with answers found for user',
+                completed_at: new Date().toISOString()
+              })
+              .eq('id', item.id);
           }
-
-          answersJson = latestRun.answers_json;
-
-          // Create new persona run
-          const { data: newRun, error: runError } = await supabase
-            .from('persona_runs')
-            .insert({
-              user_id: userId,
-              title: 'Your Persona',
-              answers_json: answersJson,
-              status: 'generating',
-              source_type: 'admin_triggered',
-              started_at: new Date().toISOString(),
-            })
-            .select('id')
-            .single();
-
-          if (runError) {
-            console.error(`Error creating persona run for user ${userId}:`, runError);
-            continue;
-          }
-
-          personaRunId = newRun.id;
-          console.log(`Created new persona run ${personaRunId} for user ${userId}`);
+          continue;
         }
 
         // Update queue items with persona run id and mark as processing
