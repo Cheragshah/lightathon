@@ -245,12 +245,16 @@ export const CodexGenerationControl = () => {
     }
   };
 
-  const getAvailableModels = (): string[] => {
+  const getAvailableModels = (): Array<{ id: string; name: string }> => {
     const provider = providers.find(p => p.id === selectedProviderId);
     if (!provider?.available_models) return [];
     
     if (Array.isArray(provider.available_models)) {
-      return provider.available_models;
+      // Models are objects with id, name, context_window, supports_vision
+      return provider.available_models.map((m: any) => ({
+        id: typeof m === 'string' ? m : m.id,
+        name: typeof m === 'string' ? m : m.name,
+      }));
     }
     return [];
   };
@@ -435,8 +439,8 @@ export const CodexGenerationControl = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {getAvailableModels().map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
