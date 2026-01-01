@@ -9,7 +9,12 @@ import {
   Sparkles, 
   Settings,
   BookOpen,
-  Home
+  Home,
+  Bot,
+  Mail,
+  FileType,
+  List,
+  HelpCircle
 } from "lucide-react";
 import {
   Sidebar,
@@ -51,7 +56,12 @@ const analyticsNavItems = [
 ];
 
 const configNavItems = [
-  { id: "configuration", title: "Configuration", icon: Settings, adminOnly: true },
+  { id: "config-system", title: "System", icon: Settings, adminOnly: true },
+  { id: "config-ai", title: "AI Providers", icon: Bot, adminOnly: true },
+  { id: "config-email", title: "Email", icon: Mail, adminOnly: true },
+  { id: "config-pdf", title: "PDF Templates", icon: FileType, adminOnly: true },
+  { id: "config-codex", title: "Codex Prompts", icon: List, adminOnly: true },
+  { id: "config-questions", title: "Questions", icon: HelpCircle, adminOnly: true },
 ];
 
 export function AdminSidebar({ activeTab, onTabChange, isAdmin }: AdminSidebarProps) {
