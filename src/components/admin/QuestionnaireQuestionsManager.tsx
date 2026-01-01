@@ -409,6 +409,7 @@ export function QuestionnaireQuestionsManager() {
           <BulkQuestionActions
             selectedQuestionIds={selectedQuestionIds}
             categories={categories}
+            questions={questions}
             onClearSelection={() => setSelectedQuestionIds([])}
             onComplete={loadData}
           />
