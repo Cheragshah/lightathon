@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.fetch-provider-models]
 verify_jwt = false
+
+[functions.admin-cancel-persona-run]
+verify_jwt = false
