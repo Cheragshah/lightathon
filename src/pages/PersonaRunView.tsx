@@ -378,19 +378,6 @@ export default function PersonaRunView() {
               <div className="flex flex-wrap gap-2 sm:gap-3">
                 {personaRun.status === 'completed' && (
                   <>
-                    <Button 
-                      onClick={handleDownloadAllPDFs} 
-                      disabled={downloadingZip}
-                      size="sm"
-                      className="flex-1 sm:flex-none"
-                    >
-                      {downloadingZip ? (
-                        <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                      ) : (
-                        <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                      )}
-                      <span className="text-xs sm:text-sm">Download All</span>
-                    </Button>
                     <ShareDialog personaRunId={id!} />
                   </>
                 )}

@@ -456,8 +456,8 @@ export default function Dashboard() {
               {/* Show all persona runs with Lightathon cards */}
               <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {personaRuns.map((run) => (
-                  <div key={run.id} className="contents">
-                    <Card className="hover:shadow-lg transition-shadow">
+                  <>
+                    <Card key={run.id} className="hover:shadow-lg transition-shadow">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
                           <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">Flow: Dense to LightOS</CardTitle>
@@ -480,11 +480,16 @@ export default function Dashboard() {
                             View
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    {/* Lightathon card appears next to completed persona runs */}
+                    {run.status === 'completed' && user && (
+                      <LightathonCard key={`lightathon-${run.id}`} userId={user.id} personaRunId={run.id} />
+                    )}
+                  </>
                 ))}
               </div>
             </div>
