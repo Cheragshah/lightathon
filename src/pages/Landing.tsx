@@ -9,49 +9,54 @@ const Landing = () => {
     <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
       <LightBeamBackground />
 
-      <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8 sm:space-y-12">
+      <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8 animate-fade-in">
+        {/* Tagline */}
+        <p className="text-xs sm:text-sm font-medium tracking-[0.3em] uppercase text-muted-foreground">
+          Mindset Transformation
+        </p>
+
         {/* Title */}
-        <div className="space-y-6">
-          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-wider animate-title-float animate-title-glow">
-            <span className="bg-gradient-to-b from-white via-white to-primary bg-clip-text text-transparent">
-              LIGHTATHON
-            </span>
+        <div className="space-y-4">
+          <h1 className="text-display-lg font-extralight">
+            <span className="text-foreground">Flow:</span>
+            <span className="block text-gradient-primary mt-2">Dense to LightOS</span>
           </h1>
-          
-          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground font-heading tracking-[0.4em] uppercase">
-            Journey to LightOS
-          </p>
         </div>
 
-        {/* Tagline */}
-        <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-foreground/80 leading-relaxed">
-          Transform your life with daily challenges. Build habits, earn points, and climb the leaderboard.
+        {/* Subtitle */}
+        <p className="max-w-xl mx-auto text-lg sm:text-xl text-muted-foreground leading-relaxed font-light">
+          Transform your thinking patterns. Achieve mental clarity. 
+          Upgrade your mindset with guided daily practices.
         </p>
 
         {/* CTA Button */}
-        <div className="pt-4">
+        <div className="pt-6">
           <Button
             asChild
             size="lg"
-            className="h-14 px-10 text-lg font-heading font-semibold tracking-wide gradient-cyan glow-cyan transition-all duration-300 hover:scale-105"
+            className="btn-gradient h-14 px-10 text-base font-medium tracking-wide"
           >
             <Link to="/dashboard" className="flex items-center gap-3">
-              Enter Here
-              <ArrowRight className="w-5 h-5" />
+              Begin Your Journey
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>
         </div>
 
         {/* Logo */}
-        <div className="flex justify-center pt-4">
-          <img src={logo} alt="Inner Clarity HUB" className="h-24 w-24 rounded-full" />
+        <div className="flex justify-center pt-8">
+          <img 
+            src={logo} 
+            alt="Inner Clarity HUB" 
+            className="h-16 w-16 rounded-full opacity-80 hover:opacity-100 transition-opacity" 
+          />
         </div>
 
         {/* Footer */}
-        <footer className="pt-12 sm:pt-16 border-t border-border/30">
-          <div className="flex flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
-            <span>© 2025 Inner Clarity HUB. All rights reserved.</span>
-          </div>
+        <footer className="pt-12 border-t border-border/30">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Inner Clarity HUB. All rights reserved.
+          </p>
         </footer>
       </div>
     </div>
