@@ -7,19 +7,31 @@ interface SplashScreenProps {
 
 export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [isVisible, setIsVisible] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        onComplete?.();
-      }, 600);
+    // Start fade out after 2.2 seconds
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
     }, 2200);
 
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    // Complete after fade animation (2.2s + 0.6s)
+    const completeTimer = setTimeout(() => {
+      setIsVisible(false);
+      onComplete?.();
+    }, 2800);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(completeTimer);
+    };
+  }, []); // Empty dependency array - only run once
 
   if (!isVisible) {
+    return null;
+  }
+
+  if (isFadingOut) {
     return (
       <motion.div
         initial={{ opacity: 1 }}
