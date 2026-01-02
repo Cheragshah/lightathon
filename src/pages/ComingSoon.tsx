@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LightBeamBackground } from "@/components/LightBeamBackground";
+import { SplashScreen } from "@/components/SplashScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, CheckCircle, Loader2, Sparkles } from "lucide-react";
@@ -17,6 +18,7 @@ interface TimeLeft {
 
 const ComingSoon = () => {
   const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(true);
   const [logoClickCount, setLogoClickCount] = useState(0);
 
   const handleLogoClick = () => {
@@ -132,11 +134,16 @@ const ComingSoon = () => {
     </div>
   );
 
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
-    <div className="relative min-h-screen min-h-[100dvh] flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden">
+    <div className="relative min-h-screen min-h-[100dvh] flex flex-col px-4 sm:px-6 overflow-hidden">
       <LightBeamBackground />
 
-      <div className="relative z-10 w-full max-w-4xl mx-auto text-center space-y-6 sm:space-y-8 animate-fade-in py-6 sm:py-0">
+      {/* Main content - centered with flex-grow */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-4xl mx-auto text-center space-y-6 sm:space-y-8 animate-fade-in py-6 sm:py-12">
         {/* Title */}
         <div className="space-y-4 sm:space-y-6">
           <div className="inline-block relative">
@@ -251,9 +258,11 @@ const ComingSoon = () => {
             />
           </div>
         </div>
+      </div>
 
-        {/* Footer */}
-        <footer className="pt-6 sm:pt-8 border-t border-border/20">
+      {/* Footer - fixed at bottom */}
+      <footer className="relative z-10 w-full py-6 sm:py-8 border-t border-border/20">
+        <div className="max-w-4xl mx-auto text-center">
           <p className="text-xs text-muted-foreground mb-3 sm:mb-4">
             © {new Date().getFullYear()} Inner Clarity Hub™. All rights reserved.
           </p>
@@ -262,8 +271,8 @@ const ComingSoon = () => {
             <span className="hover:text-primary transition-colors cursor-pointer">Terms</span>
             <span className="hover:text-primary transition-colors cursor-pointer">Contact</span>
           </div>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </div>
   );
 };
