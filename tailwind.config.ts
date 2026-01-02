@@ -16,7 +16,7 @@ export default {
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
         heading: ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        display: ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        display: ["Orbitron", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -101,16 +101,21 @@ export default {
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "beam-pulse": {
-          "0%, 100%": { opacity: "0.6" },
+          "0%, 100%": { opacity: "0.7" },
           "50%": { opacity: "1" },
         },
         "beam-glow": {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(185 85% 55% / 0.3)" },
-          "50%": { boxShadow: "0 0 40px hsl(185 85% 55% / 0.5), 0 0 60px hsl(185 85% 55% / 0.3)" },
+          "0%, 100%": { filter: "blur(30px)", opacity: "0.7" },
+          "50%": { filter: "blur(25px)", opacity: "1" },
+        },
+        "beam-travel": {
+          "0%": { transform: "translateY(-25%)" },
+          "50%": { transform: "translateY(25%)" },
+          "100%": { transform: "translateY(-25%)" },
         },
         "title-glow": {
-          "0%, 100%": { filter: "drop-shadow(0 0 20px hsl(185 85% 55% / 0.3))" },
-          "50%": { filter: "drop-shadow(0 0 40px hsl(185 85% 55% / 0.6)) drop-shadow(0 0 60px hsl(185 85% 55% / 0.3))" },
+          "0%, 100%": { filter: "drop-shadow(0 0 25px hsl(210 100% 60% / 0.4))" },
+          "50%": { filter: "drop-shadow(0 0 50px hsl(210 100% 65% / 0.7)) drop-shadow(0 0 80px hsl(210 100% 55% / 0.4))" },
         },
         "float-particle": {
           "0%": { opacity: "0", transform: "translateY(100vh) scale(0)" },
@@ -118,15 +123,21 @@ export default {
           "90%": { opacity: "1", transform: "translateY(10vh) scale(1)" },
           "100%": { opacity: "0", transform: "translateY(0) scale(0)" },
         },
+        "float-orb": {
+          "0%, 100%": { transform: "translateY(0) scale(1)" },
+          "50%": { transform: "translateY(-20px) scale(1.05)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out forwards",
-        "beam-pulse": "beam-pulse 3s ease-in-out infinite",
-        "beam-glow": "beam-glow 2s ease-in-out infinite",
-        "title-glow": "title-glow 3s ease-in-out infinite",
-        "float-particle": "float-particle 8s ease-in-out infinite",
+        "beam-pulse": "beam-pulse 2.5s ease-in-out infinite",
+        "beam-glow": "beam-glow 3s ease-in-out infinite",
+        "beam-travel": "beam-travel 8s ease-in-out infinite",
+        "title-glow": "title-glow 2.5s ease-in-out infinite",
+        "float-particle": "float-particle 10s ease-in-out infinite",
+        "float-orb": "float-orb 6s ease-in-out infinite",
       },
     },
   },
