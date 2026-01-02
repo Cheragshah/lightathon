@@ -78,8 +78,8 @@ const Landing = () => {
 
         {/* Subtitle */}
         <p className="max-w-md sm:max-w-xl mx-auto text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed px-2">
-          Transform your life with daily challenges. Build habits, earn points, 
-          and climb the leaderboard.
+          Move from Dense to Light Living.<br />
+          A guided journey that turns self-awareness into daily alignment.
         </p>
 
         {/* CTA Button */}
