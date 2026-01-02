@@ -11,6 +11,7 @@ import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { GenerationProgress } from "@/components/GenerationProgress";
 import { LightathonCard } from "@/components/LightathonCard";
+import { ShootingStarsBackground } from "@/components/ShootingStarsBackground";
 import type { User } from "@supabase/supabase-js";
 
 interface Codex {
@@ -340,7 +341,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <ShootingStarsBackground />
       <Navigation isAuthenticated={!!user} />
       
       {/* Profile Completion Dialog */}

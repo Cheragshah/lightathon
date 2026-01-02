@@ -6,6 +6,7 @@ import { PDFTemplateSettings } from "@/components/admin/PDFTemplateSettings";
 import { SystemConfiguration } from "@/components/admin/SystemConfiguration";
 import { AIProvidersManager } from "@/components/admin/AIProvidersManager";
 import { EmailSettings } from "@/components/admin/EmailSettings";
+import { EarlySignupsManager } from "@/components/admin/EarlySignupsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Session } from "@supabase/supabase-js";
@@ -62,6 +63,7 @@ export default function Admin() {
           <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
             <TabsList className="inline-flex w-max min-w-full sm:w-auto sm:min-w-0">
               <TabsTrigger value="system" className="text-xs sm:text-sm px-3 sm:px-4">System</TabsTrigger>
+              <TabsTrigger value="early-signups" className="text-xs sm:text-sm px-3 sm:px-4">Early Signups</TabsTrigger>
               <TabsTrigger value="ai-providers" className="text-xs sm:text-sm px-3 sm:px-4">AI Providers</TabsTrigger>
               <TabsTrigger value="email" className="text-xs sm:text-sm px-3 sm:px-4">Email</TabsTrigger>
               <TabsTrigger value="pdf-templates" className="text-xs sm:text-sm px-3 sm:px-4">PDF Templates</TabsTrigger>
@@ -70,6 +72,10 @@ export default function Admin() {
           
           <TabsContent value="system">
             <SystemConfiguration />
+          </TabsContent>
+
+          <TabsContent value="early-signups">
+            <EarlySignupsManager />
           </TabsContent>
           
           <TabsContent value="ai-providers">
