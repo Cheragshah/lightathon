@@ -77,6 +77,53 @@ export const LightBeamBackground = () => {
     ];
   }, []);
 
+  // Shooting stars
+  const [shootingStars, setShootingStars] = useState<Array<{
+    id: number;
+    startX: number;
+    startY: number;
+    angle: number;
+    duration: number;
+    delay: number;
+  }>>([]);
+
+  useEffect(() => {
+    if (isReducedMotion) return;
+    
+    const createShootingStar = () => {
+      const id = Date.now();
+      const startX = Math.random() * 100;
+      const startY = Math.random() * 40; // Start in upper portion
+      const angle = 25 + Math.random() * 20; // Angle between 25-45 degrees
+      const duration = 0.8 + Math.random() * 0.6; // 0.8-1.4 seconds
+      
+      setShootingStars(prev => [...prev, { id, startX, startY, angle, duration, delay: 0 }]);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        setShootingStars(prev => prev.filter(star => star.id !== id));
+      }, duration * 1000 + 100);
+    };
+
+    // Create shooting stars at random intervals (every 2-6 seconds)
+    const scheduleNext = () => {
+      const interval = 2000 + Math.random() * 4000;
+      return setTimeout(() => {
+        createShootingStar();
+        scheduleNext();
+      }, interval);
+    };
+
+    // Initial shooting star after 1 second
+    const initialTimeout = setTimeout(createShootingStar, 1000);
+    const intervalId = scheduleNext();
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearTimeout(intervalId);
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
       {/* Deep space gradient background */}
@@ -258,11 +305,55 @@ export const LightBeamBackground = () => {
         }}
       />
 
-      {/* CSS for twinkle animation */}
+      {/* Shooting Stars */}
+      {shootingStars.map((star) => (
+        <div
+          key={star.id}
+          className="absolute pointer-events-none"
+          style={{
+            left: `${star.startX}%`,
+            top: `${star.startY}%`,
+            animation: `shootingStar ${star.duration}s linear forwards`,
+            transform: `rotate(${star.angle}deg)`,
+          }}
+        >
+          {/* Star head */}
+          <div
+            className="absolute w-1.5 h-1.5 rounded-full"
+            style={{
+              background: 'hsl(0 0% 100%)',
+              boxShadow: '0 0 6px 2px hsl(210 100% 80%), 0 0 12px 4px hsl(210 100% 60%)',
+            }}
+          />
+          {/* Star tail */}
+          <div
+            className="absolute h-[2px] rounded-full"
+            style={{
+              width: '80px',
+              right: '6px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'linear-gradient(to left, hsl(210 100% 80% / 0.9), hsl(210 100% 60% / 0.4), transparent)',
+            }}
+          />
+        </div>
+      ))}
+
+      {/* CSS for animations */}
       <style>{`
         @keyframes twinkle {
           0%, 100% { opacity: 0.3; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes shootingStar {
+          0% {
+            opacity: 1;
+            transform: translateX(0) translateY(0) rotate(var(--angle, 35deg));
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(300px) translateY(180px) rotate(var(--angle, 35deg));
+          }
         }
       `}</style>
     </div>
