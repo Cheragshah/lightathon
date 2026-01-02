@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { LightBeamBackground } from "@/components/LightBeamBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, CheckCircle, Loader2 } from "lucide-react";
+import { Mail, CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
@@ -113,39 +113,48 @@ const ComingSoon = () => {
   const CountdownCard = ({ value, label }: { value: number; label: string }) => (
     <div className="flex flex-col items-center">
       <div 
-        className="px-4 py-3 sm:px-6 sm:py-4 min-w-[70px] sm:min-w-[90px] text-center"
+        className="px-3 py-2 sm:px-5 sm:py-4 min-w-[60px] sm:min-w-[80px] md:min-w-[100px] text-center"
         style={{
-          background: "hsl(220 20% 12% / 0.7)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid hsl(185 85% 55% / 0.2)",
+          background: "linear-gradient(180deg, hsl(225 50% 10% / 0.8) 0%, hsl(225 50% 8% / 0.9) 100%)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid hsl(210 100% 55% / 0.25)",
           borderRadius: "0.75rem",
+          boxShadow: "inset 0 1px 0 hsl(210 100% 70% / 0.1), 0 8px 20px -5px hsl(210 100% 50% / 0.25)",
         }}
       >
-        <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
+        <span className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white">
           {value.toString().padStart(2, "0")}
         </span>
       </div>
-      <span className="text-xs text-muted-foreground mt-2 uppercase tracking-widest">
+      <span className="text-[10px] sm:text-xs text-muted-foreground mt-2 uppercase tracking-widest font-medium">
         {label}
       </span>
     </div>
   );
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
+    <div className="relative min-h-screen min-h-[100dvh] flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden">
       <LightBeamBackground />
 
-      <div className="relative z-10 max-w-4xl mx-auto text-center space-y-10 animate-fade-in">
+      <div className="relative z-10 w-full max-w-4xl mx-auto text-center space-y-6 sm:space-y-8 animate-fade-in py-6 sm:py-0">
         {/* Title */}
-        <div className="space-y-6">
-          <div className="inline-block">
-            <h1 
-              className="text-display-lg text-foreground px-8 py-4 animate-title-glow"
+        <div className="space-y-4 sm:space-y-6">
+          <div className="inline-block relative">
+            <div 
+              className="absolute inset-0 rounded-xl animate-title-glow"
               style={{
-                background: "hsl(220 20% 15% / 0.7)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid hsl(185 85% 55% / 0.2)",
-                borderRadius: "0.5rem",
+                background: "linear-gradient(135deg, hsl(210 100% 55% / 0.2) 0%, hsl(220 100% 50% / 0.1) 100%)",
+                filter: "blur(20px)",
+              }}
+            />
+            <h1 
+              className="relative font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white px-6 sm:px-10 py-4 sm:py-6 animate-title-glow tracking-wider"
+              style={{
+                background: "linear-gradient(180deg, hsl(225 50% 8% / 0.85) 0%, hsl(225 50% 12% / 0.75) 100%)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid hsl(210 100% 55% / 0.3)",
+                borderRadius: "1rem",
+                boxShadow: "inset 0 1px 0 hsl(210 100% 70% / 0.1), 0 20px 40px -10px hsl(210 100% 50% / 0.3)",
               }}
             >
               LIGHTATHON
@@ -153,20 +162,22 @@ const ComingSoon = () => {
           </div>
           
           <p 
-            className="inline-block text-sm sm:text-base font-medium tracking-[0.4em] uppercase text-primary/90 px-6 py-2"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm md:text-base font-medium tracking-[0.3em] sm:tracking-[0.4em] uppercase text-primary px-4 sm:px-6 py-2"
             style={{
-              background: "hsl(220 20% 15% / 0.5)",
-              backdropFilter: "blur(8px)",
-              border: "1px solid hsl(185 85% 55% / 0.15)",
-              borderRadius: "0.375rem",
+              background: "hsl(225 50% 10% / 0.6)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid hsl(210 100% 55% / 0.2)",
+              borderRadius: "0.5rem",
             }}
           >
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
             Coming Soon
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
           </p>
         </div>
 
         {/* Countdown Timer */}
-        <div className="flex justify-center gap-3 sm:gap-4 md:gap-6">
+        <div className="flex justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
           <CountdownCard value={timeLeft.days} label="Days" />
           <CountdownCard value={timeLeft.hours} label="Hours" />
           <CountdownCard value={timeLeft.minutes} label="Mins" />
@@ -174,42 +185,42 @@ const ComingSoon = () => {
         </div>
 
         {/* Email Signup */}
-        <div className="max-w-md mx-auto">
+        <div className="max-w-sm sm:max-w-md mx-auto px-2">
           {isSubscribed ? (
             <div 
-              className="flex items-center justify-center gap-3 px-6 py-4"
+              className="flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4"
               style={{
-                background: "hsl(142 76% 36% / 0.1)",
-                border: "1px solid hsl(142 76% 36% / 0.3)",
+                background: "hsl(142 76% 36% / 0.15)",
+                border: "1px solid hsl(142 76% 36% / 0.35)",
                 borderRadius: "0.75rem",
               }}
             >
-              <CheckCircle className="w-5 h-5 text-success" />
-              <span className="text-success text-sm">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success flex-shrink-0" />
+              <span className="text-success text-xs sm:text-sm">
                 You're on the list! We'll notify you when we launch.
               </span>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <p className="text-muted-foreground text-sm">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+              <p className="text-muted-foreground text-xs sm:text-sm">
                 Be the first to experience Lightathon. Sign up for early access.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <div className="relative flex-1">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-11 h-12 bg-card/60 border-primary/20 backdrop-blur-xl"
+                    className="pl-10 sm:pl-11 h-11 sm:h-12 bg-secondary/60 border-primary/25 backdrop-blur-xl text-sm"
                     required
                   />
                 </div>
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="h-12 px-8 btn-gradient font-semibold glow-cyan"
+                  className="h-11 sm:h-12 px-6 sm:px-8 btn-gradient font-semibold glow-blue text-sm"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -223,24 +234,33 @@ const ComingSoon = () => {
         </div>
 
         {/* Logo */}
-        <div className="flex justify-center pt-4">
-          <img 
-            src={logo} 
-            alt="Inner Clarity HUB" 
-            className="h-14 w-14 rounded-full opacity-80 cursor-pointer transition-all hover:opacity-100 hover:scale-105" 
-            onClick={handleLogoClick}
-          />
+        <div className="flex justify-center pt-2 sm:pt-4">
+          <div className="relative">
+            <img 
+              src={logo} 
+              alt="Inner Clarity HUB" 
+              className="h-12 w-12 sm:h-14 sm:w-14 rounded-full opacity-80 cursor-pointer transition-all hover:opacity-100 hover:scale-105" 
+              onClick={handleLogoClick}
+            />
+            <div 
+              className="absolute inset-0 rounded-full animate-pulse"
+              style={{
+                background: "radial-gradient(circle, hsl(210 100% 55% / 0.25) 0%, transparent 70%)",
+                filter: "blur(8px)",
+              }}
+            />
+          </div>
         </div>
 
         {/* Footer */}
-        <footer className="pt-8 border-t border-border/30">
-          <p className="text-xs text-muted-foreground mb-4">
+        <footer className="pt-6 sm:pt-8 border-t border-border/20">
+          <p className="text-xs text-muted-foreground mb-3 sm:mb-4">
             © {new Date().getFullYear()} Inner Clarity Hub™. All rights reserved.
           </p>
-          <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground/70">
-            <span className="hover:text-muted-foreground transition-colors cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-muted-foreground transition-colors cursor-pointer">Terms of Service</span>
-            <span className="hover:text-muted-foreground transition-colors cursor-pointer">Contact</span>
+          <div className="flex items-center justify-center gap-4 sm:gap-6 text-xs text-muted-foreground/70">
+            <span className="hover:text-primary transition-colors cursor-pointer">Privacy</span>
+            <span className="hover:text-primary transition-colors cursor-pointer">Terms</span>
+            <span className="hover:text-primary transition-colors cursor-pointer">Contact</span>
           </div>
         </footer>
       </div>
