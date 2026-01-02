@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState, useMemo } from "react";
+import logoImage from "@/assets/ich-logo-circle.png";
 
 interface SplashScreenProps {
   onComplete?: () => void;
@@ -127,17 +128,14 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           />
 
           {/* Logo circle */}
-          <div
-            className="w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center"
+          <img
+            src={logoImage}
+            alt="Lightathon Logo"
+            className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover"
             style={{
-              background: "linear-gradient(135deg, hsl(210 100% 50%) 0%, hsl(220 100% 45%) 100%)",
               boxShadow: "0 0 40px hsl(210 100% 55% / 0.5)",
             }}
-          >
-            <span className="font-display text-3xl sm:text-4xl font-bold text-white">
-              L
-            </span>
-          </div>
+          />
         </motion.div>
 
         {/* Text */}
