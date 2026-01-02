@@ -10,17 +10,15 @@ const Landing = () => {
       <LightBeamBackground />
 
       <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8 animate-fade-in">
-        {/* Tagline */}
-        <p className="text-xs sm:text-sm font-medium tracking-[0.3em] uppercase text-muted-foreground">
-          Mindset Transformation
-        </p>
-
-        {/* Title */}
-        <div className="space-y-4">
-          <h1 className="text-display-lg font-extralight">
-            <span className="text-foreground">Flow:</span>
-            <span className="block text-gradient-primary mt-2">Dense to LightOS</span>
+        {/* Main Title */}
+        <div className="space-y-6">
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extralight tracking-tight">
+            <span className="text-gradient-primary">LIGHTATHON</span>
           </h1>
+          
+          <p className="text-sm sm:text-base font-medium tracking-[0.4em] uppercase text-muted-foreground">
+            Journey to LightOS
+          </p>
         </div>
 
         {/* Subtitle */}
@@ -30,11 +28,11 @@ const Landing = () => {
         </p>
 
         {/* CTA Button */}
-        <div className="pt-6">
+        <div className="pt-8">
           <Button
             asChild
             size="lg"
-            className="btn-gradient h-14 px-10 text-base font-medium tracking-wide"
+            className="btn-gradient h-14 px-12 text-base font-medium tracking-wide"
           >
             <Link to="/dashboard" className="flex items-center gap-3">
               Begin Your Journey
@@ -44,18 +42,18 @@ const Landing = () => {
         </div>
 
         {/* Logo */}
-        <div className="flex justify-center pt-8">
+        <div className="flex justify-center pt-10">
           <img 
             src={logo} 
             alt="Inner Clarity HUB" 
-            className="h-16 w-16 rounded-full opacity-80 hover:opacity-100 transition-opacity" 
+            className="h-14 w-14 rounded-full opacity-70 hover:opacity-100 transition-opacity" 
           />
         </div>
 
         {/* Footer */}
-        <footer className="pt-12 border-t border-border/30">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Inner Clarity HUB. All rights reserved.
+        <footer className="pt-16">
+          <p className="text-xs text-muted-foreground/60">
+            © {new Date().getFullYear()} Inner Clarity HUB
           </p>
         </footer>
       </div>
