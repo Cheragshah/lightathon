@@ -7,12 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Save, Loader2, Upload, X, Clock } from "lucide-react";
+import { Settings, Save, Loader2, Upload, X, Clock, Calendar } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 export const SystemConfiguration = () => {
   const [appName, setAppName] = useState<string>("");
   const [appTagline, setAppTagline] = useState<string>("");
   const [comingSoonEnabled, setComingSoonEnabled] = useState<boolean>(false);
+  const [countdownDate, setCountdownDate] = useState<Date | undefined>(undefined);
+  const [countdownTime, setCountdownTime] = useState<string>("00:00");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [currentLogoUrl, setCurrentLogoUrl] = useState<string>("");
@@ -20,6 +25,7 @@ export const SystemConfiguration = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savingComingSoon, setSavingComingSoon] = useState(false);
+  const [savingCountdown, setSavingCountdown] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,6 +73,24 @@ export const SystemConfiguration = () => {
 
       if (comingSoonData?.value !== undefined) {
         setComingSoonEnabled(comingSoonData.value === true || comingSoonData.value === "true");
+      }
+
+      // Load countdown target date
+      const { data: countdownData } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "countdown_target_date")
+        .maybeSingle();
+
+      if (countdownData?.value) {
+        const dateString = typeof countdownData.value === 'string' 
+          ? countdownData.value.replace(/"/g, '') 
+          : String(countdownData.value);
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          setCountdownDate(date);
+          setCountdownTime(format(date, "HH:mm"));
+        }
       }
     } catch (error: any) {
       toast({
@@ -288,6 +312,109 @@ export const SystemConfiguration = () => {
             }}
           />
         </div>
+
+        {/* Countdown Timer Configuration - Only show when Coming Soon is enabled */}
+        {comingSoonEnabled && (
+          <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              <div>
+                <Label className="text-base font-medium">Countdown Timer</Label>
+                <p className="text-sm text-muted-foreground">
+                  Set the target date and time for the coming soon countdown
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-2">
+                <Label>Target Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {countdownDate ? format(countdownDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={countdownDate}
+                      onSelect={setCountdownDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Target Time</Label>
+                <Input
+                  type="time"
+                  value={countdownTime}
+                  onChange={(e) => setCountdownTime(e.target.value)}
+                  className="w-[140px]"
+                />
+              </div>
+              
+              <Button
+                onClick={async () => {
+                  if (!countdownDate) {
+                    toast({
+                      title: "Select a date",
+                      description: "Please select a target date for the countdown",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  setSavingCountdown(true);
+                  try {
+                    const [hours, minutes] = countdownTime.split(':').map(Number);
+                    const targetDateTime = new Date(countdownDate);
+                    targetDateTime.setHours(hours, minutes, 0, 0);
+                    
+                    const { error } = await supabase
+                      .from("app_settings")
+                      .upsert({
+                        key: "countdown_target_date",
+                        value: targetDateTime.toISOString(),
+                      }, { onConflict: 'key' });
+
+                    if (error) throw error;
+
+                    toast({
+                      title: "Countdown Updated",
+                      description: `Timer set to ${format(targetDateTime, "PPP 'at' p")}`,
+                    });
+                  } catch (error: any) {
+                    toast({
+                      title: "Error saving countdown",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setSavingCountdown(false);
+                  }
+                }}
+                disabled={savingCountdown || !countdownDate}
+              >
+                {savingCountdown ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Countdown
+              </Button>
+            </div>
+            
+            {countdownDate && (
+              <p className="text-sm text-muted-foreground">
+                Current target: {format(new Date(countdownDate.setHours(...countdownTime.split(':').map(Number) as [number, number])), "PPP 'at' p")}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* App Name */}
         <div className="space-y-2">
