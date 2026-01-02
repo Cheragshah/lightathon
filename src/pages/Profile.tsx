@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { User } from "@supabase/supabase-js";
-import { Camera, Loader2, User as UserIcon } from "lucide-react";
+import { Camera, Loader2, User as UserIcon, ArrowRight } from "lucide-react";
 
 interface ProfileData {
   first_name: string;
@@ -56,7 +56,6 @@ export default function Profile() {
       setUser(session.user);
       const authEmail = session.user.email || "";
       
-      // Load profile data from profiles table
       const { data: profile } = await supabase
         .from("profiles")
         .select("first_name, last_name, email, phone_whatsapp, address, city, state, pin_code, photograph_url, batch")
@@ -67,7 +66,6 @@ export default function Profile() {
         setFormData({
           first_name: profile.first_name || "",
           last_name: profile.last_name || "",
-          // Use profile email if set, otherwise use auth email (but don't let user override auth email)
           email: profile.email || authEmail,
           phone_whatsapp: profile.phone_whatsapp || "",
           address: profile.address || "",
@@ -78,7 +76,6 @@ export default function Profile() {
           batch: profile.batch,
         });
       } else {
-        // No profile yet, use auth email
         setFormData(prev => ({
           ...prev,
           email: authEmail,
@@ -155,7 +152,6 @@ export default function Profile() {
 
     if (!user) return;
 
-    // Validate required fields
     const requiredFields: (keyof ProfileData)[] = ["first_name", "last_name", "email", "phone_whatsapp", "address", "city", "state", "pin_code"];
     const missingFields = requiredFields.filter(field => !formData[field]?.trim());
     
@@ -169,7 +165,6 @@ export default function Profile() {
       return;
     }
 
-    // Update profile in profiles table (excluding batch which is admin-only)
     const { error } = await supabase
       .from("profiles")
       .upsert({
@@ -197,10 +192,9 @@ export default function Profile() {
       });
     } else {
       toast({
-        title: "Profile updated successfully!",
+        title: "Profile updated",
         description: "Redirecting to dashboard...",
       });
-      // Redirect to dashboard after successful update
       setTimeout(() => {
         navigate("/dashboard");
       }, 1000);
@@ -208,21 +202,21 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary">
+    <div className="min-h-screen bg-background">
       <Navigation isAuthenticated={!!user} />
       
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>User Profile</CardTitle>
+      <div className="container mx-auto px-4 py-8 page-transition">
+        <Card className="max-w-2xl mx-auto border shadow-subtle">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-xl font-medium">Your Profile</CardTitle>
             <CardDescription>Update your account information</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleUpdateProfile} className="space-y-6">
               {/* Photo Upload */}
               <div className="flex flex-col items-center gap-3">
                 <div className="relative">
-                  <Avatar className="h-24 w-24 border-2 border-primary/20">
+                  <Avatar className="h-24 w-24 border-2 border-border">
                     <AvatarImage src={formData.photograph_url} />
                     <AvatarFallback className="bg-muted">
                       <UserIcon className="h-10 w-10 text-muted-foreground" />
@@ -232,7 +226,7 @@ export default function Profile() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors"
+                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
                   >
                     {isUploading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,13 +242,13 @@ export default function Profile() {
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
-                <p className="text-sm text-muted-foreground">Click to upload your photo</p>
+                <p className="text-xs text-muted-foreground">Click to upload photo</p>
               </div>
 
               {/* Name Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name *</Label>
+                  <Label htmlFor="first_name" className="text-sm">First Name *</Label>
                   <Input
                     id="first_name"
                     type="text"
@@ -263,11 +257,11 @@ export default function Profile() {
                     onChange={(e) => handleInputChange("first_name", e.target.value)}
                     disabled={loading}
                     required
-                    maxLength={50}
+                    className="h-10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name *</Label>
+                  <Label htmlFor="last_name" className="text-sm">Last Name *</Label>
                   <Input
                     id="last_name"
                     type="text"
@@ -276,14 +270,14 @@ export default function Profile() {
                     onChange={(e) => handleInputChange("last_name", e.target.value)}
                     disabled={loading}
                     required
-                    maxLength={50}
+                    className="h-10"
                   />
                 </div>
               </div>
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email" className="text-sm">Email Address *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -292,15 +286,13 @@ export default function Profile() {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   disabled={loading}
                   required
+                  className="h-10"
                 />
-                <p className="text-sm text-muted-foreground">
-                  This can be the same as your login email
-                </p>
               </div>
 
               {/* WhatsApp */}
               <div className="space-y-2">
-                <Label htmlFor="phone_whatsapp">WhatsApp Number *</Label>
+                <Label htmlFor="phone_whatsapp" className="text-sm">WhatsApp Number *</Label>
                 <Input
                   id="phone_whatsapp"
                   type="tel"
@@ -309,13 +301,13 @@ export default function Profile() {
                   onChange={(e) => handleInputChange("phone_whatsapp", e.target.value)}
                   disabled={loading}
                   required
-                  maxLength={20}
+                  className="h-10"
                 />
               </div>
 
               {/* Address */}
               <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
+                <Label htmlFor="address" className="text-sm">Address *</Label>
                 <Textarea
                   id="address"
                   placeholder="Enter your full address"
@@ -324,13 +316,14 @@ export default function Profile() {
                   disabled={loading}
                   required
                   rows={2}
+                  className="resize-none"
                 />
               </div>
 
               {/* City and State */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
+                  <Label htmlFor="city" className="text-sm">City *</Label>
                   <Input
                     id="city"
                     type="text"
@@ -339,11 +332,11 @@ export default function Profile() {
                     onChange={(e) => handleInputChange("city", e.target.value)}
                     disabled={loading}
                     required
-                    maxLength={50}
+                    className="h-10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State *</Label>
+                  <Label htmlFor="state" className="text-sm">State *</Label>
                   <Input
                     id="state"
                     type="text"
@@ -352,14 +345,14 @@ export default function Profile() {
                     onChange={(e) => handleInputChange("state", e.target.value)}
                     disabled={loading}
                     required
-                    maxLength={50}
+                    className="h-10"
                   />
                 </div>
               </div>
 
               {/* PIN Code */}
               <div className="space-y-2">
-                <Label htmlFor="pin_code">PIN Code *</Label>
+                <Label htmlFor="pin_code" className="text-sm">PIN Code *</Label>
                 <Input
                   id="pin_code"
                   type="text"
@@ -368,40 +361,42 @@ export default function Profile() {
                   onChange={(e) => handleInputChange("pin_code", e.target.value)}
                   disabled={loading}
                   required
-                  maxLength={10}
+                  className="h-10"
                 />
               </div>
 
               {/* Batch (Read-only) */}
               {formData.batch && (
                 <div className="space-y-2">
-                  <Label htmlFor="batch">Batch</Label>
+                  <Label htmlFor="batch" className="text-sm">Batch</Label>
                   <Input
                     id="batch"
                     type="text"
                     value={formData.batch}
                     disabled
-                    className="bg-muted"
+                    className="h-10 bg-muted"
                   />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Your batch is assigned by the administrator
                   </p>
                 </div>
               )}
 
               <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-                <p className="font-medium mb-1">📝 Note:</p>
                 <p>This information will be automatically included in all future codex generations to personalize your content.</p>
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading} className="w-full h-11 btn-gradient font-medium">
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Updating...
                   </>
                 ) : (
-                  "Update Profile"
+                  <>
+                    Update Profile
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
                 )}
               </Button>
             </form>
