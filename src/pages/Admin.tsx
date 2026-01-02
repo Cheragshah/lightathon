@@ -1,15 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigation } from "@/components/Navigation";
-import { PDFTemplateSettings } from "@/components/admin/PDFTemplateSettings";
-import { SystemConfiguration } from "@/components/admin/SystemConfiguration";
-import { AIProvidersManager } from "@/components/admin/AIProvidersManager";
-import { EmailSettings } from "@/components/admin/EmailSettings";
-import { EarlySignupsManager } from "@/components/admin/EarlySignupsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Session } from "@supabase/supabase-js";
+import { Loader2 } from "lucide-react";
+
+// Lazy load heavy admin components
+const SystemConfiguration = lazy(() => 
+  import("@/components/admin/SystemConfiguration").then(m => ({ default: m.SystemConfiguration }))
+);
+const EarlySignupsManager = lazy(() => 
+  import("@/components/admin/EarlySignupsManager").then(m => ({ default: m.EarlySignupsManager }))
+);
+const AIProvidersManager = lazy(() => 
+  import("@/components/admin/AIProvidersManager").then(m => ({ default: m.AIProvidersManager }))
+);
+const EmailSettings = lazy(() => 
+  import("@/components/admin/EmailSettings").then(m => ({ default: m.EmailSettings }))
+);
+const PDFTemplateSettings = lazy(() => 
+  import("@/components/admin/PDFTemplateSettings").then(m => ({ default: m.PDFTemplateSettings }))
+);
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -17,13 +36,11 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setLoading(false);
 
-        // Handle session expiry
         if (event === 'SIGNED_OUT') {
           toast.error('Your session has expired. Please log in again.');
           navigate('/auth');
@@ -31,7 +48,6 @@ export default function Admin() {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
@@ -59,7 +75,6 @@ export default function Admin() {
         </div>
         
         <Tabs defaultValue="system" className="space-y-4 sm:space-y-6">
-          {/* Scrollable tabs for mobile */}
           <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
             <TabsList className="inline-flex w-max min-w-full sm:w-auto sm:min-w-0">
               <TabsTrigger value="system" className="text-xs sm:text-sm px-3 sm:px-4">System</TabsTrigger>
@@ -71,23 +86,33 @@ export default function Admin() {
           </div>
           
           <TabsContent value="system">
-            <SystemConfiguration />
+            <Suspense fallback={<TabLoader />}>
+              <SystemConfiguration />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="early-signups">
-            <EarlySignupsManager />
+            <Suspense fallback={<TabLoader />}>
+              <EarlySignupsManager />
+            </Suspense>
           </TabsContent>
           
           <TabsContent value="ai-providers">
-            <AIProvidersManager />
+            <Suspense fallback={<TabLoader />}>
+              <AIProvidersManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="email">
-            <EmailSettings />
+            <Suspense fallback={<TabLoader />}>
+              <EmailSettings />
+            </Suspense>
           </TabsContent>
           
           <TabsContent value="pdf-templates">
-            <PDFTemplateSettings />
+            <Suspense fallback={<TabLoader />}>
+              <PDFTemplateSettings />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
