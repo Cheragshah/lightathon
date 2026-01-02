@@ -351,16 +351,16 @@ export default function Dashboard() {
         initialData={profile || undefined}
       />
       
-      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
+      <div className="container mx-auto px-4 py-8 sm:py-12 page-transition">
         <div className="max-w-6xl mx-auto">
-          {/* Header - Stack on mobile */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2 break-words-safe">
-                Your Persona  
+              <h1 className="text-2xl sm:text-3xl font-medium text-foreground mb-1">
+                Your Journey
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Your Journey to LightOS
+              <p className="text-sm text-muted-foreground">
+                Flow: Dense to LightOS
               </p>
             </div>
             {/* Only show action buttons if not all categories are answered */}
@@ -374,12 +374,12 @@ export default function Dashboard() {
                       <Button 
                         size="default"
                         onClick={() => navigate(`/continue-questionnaire/${awaitingRun.id}`)} 
-                        className="gap-2 w-full sm:w-auto"
+                        className="gap-2 w-full sm:w-auto btn-gradient"
                       >
-                        <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                        <span className="truncate">Continue Questionnaire</span>
+                        <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">Continue</span>
                         {codexNames.length > 0 && (
-                          <Badge variant="secondary" className="ml-1 flex-shrink-0">
+                          <Badge variant="secondary" className="ml-1 flex-shrink-0 bg-white/20 text-white">
                             {codexNames.length}
                           </Badge>
                         )}
@@ -391,17 +391,17 @@ export default function Dashboard() {
                   if (unansweredCategories.length > 0) {
                     const categoryName = unansweredCategories[0];
                     return (
-                      <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
-                        <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto btn-gradient">
+                        <Plus className="h-4 w-4 flex-shrink-0" />
                         <span className="truncate">Answer {categoryName}</span>
                       </Button>
                     );
                   }
                   
                   return (
-                    <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto">
-                      <Plus className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span className="truncate">Answer Questionnaire</span>
+                    <Button size="default" onClick={() => navigate("/questionnaire")} className="gap-2 w-full sm:w-auto btn-gradient">
+                      <Plus className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Start Questionnaire</span>
                     </Button>
                   );
                 })()}
@@ -418,17 +418,19 @@ export default function Dashboard() {
               <p className="text-muted-foreground">Loading your persona runs...</p>
             </div>
           ) : personaRuns.length === 0 ? (
-            <Card className="text-center py-12">
+            <Card className="text-center py-16 border shadow-subtle">
               <CardHeader>
-                <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <CardTitle>No Persona Runs Yet</CardTitle>
-                <CardDescription>
-                  Create your first Coach Persona Blueprint by answering 20 narrative questions
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="text-xl font-medium">No Persona Runs Yet</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Begin your transformation journey by answering strategic questions
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={() => navigate("/questionnaire")} size="lg" className="gap-2">
-                  <Plus className="h-5 w-5" />
+                <Button onClick={() => navigate("/questionnaire")} size="lg" className="btn-gradient gap-2">
+                  <Plus className="h-4 w-4" />
                   Start Questionnaire
                 </Button>
               </CardContent>
@@ -454,17 +456,17 @@ export default function Dashboard() {
               )}
 
               {/* Show all persona runs with Lightathon cards */}
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
                 {personaRuns.map((run) => (
                   <>
-                    <Card key={run.id} className="hover:shadow-lg transition-shadow">
+                    <Card key={run.id} className="border shadow-subtle hover-lift">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base sm:text-lg line-clamp-2 break-words-safe">Flow: Dense to LightOS</CardTitle>
+                          <CardTitle className="text-base font-medium line-clamp-2">Flow: Dense to LightOS</CardTitle>
                           {getStatusBadge(run.status)}
                         </div>
-                        <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
-                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <CardDescription className="flex items-center gap-2 text-xs">
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
                           {new Date(run.created_at).toLocaleDateString()}
                         </CardDescription>
                       </CardHeader>
@@ -473,14 +475,14 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 text-xs sm:text-sm"
+                            className="flex-1 text-xs"
                             onClick={() => navigate(`/persona-run/${run.id}`)}
                           >
-                            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            <Eye className="h-3 w-3 mr-1.5" />
                             View
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDelete(run.id)}>
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(run.id)} className="text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </CardContent>
