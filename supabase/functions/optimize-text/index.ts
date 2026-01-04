@@ -29,7 +29,7 @@ serve(async (req) => {
 
     // Extract the token properly - remove "Bearer " prefix
     const token = authHeader.replace("Bearer ", "");
-    
+
     // Create a client with the user's JWT to verify identity
     const userSupabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -75,27 +75,9 @@ serve(async (req) => {
       });
     }
 
-    // Get default AI provider - prefer Lovable AI if available
-    const { data: lovableProvider, error: lovableError } = await supabase
-      .from("ai_providers")
-      .select("id, provider_code, base_url, available_models, default_model")
-      .eq("provider_code", "lovable")
-      .eq("is_active", true)
-      .single();
+    // Use default provider
+    const provider = defaultProvider;
 
-    console.log("Lovable provider query result:", lovableProvider ? "found" : "not found", lovableError?.message);
-
-    const { data: defaultProvider, error: providerError } = await supabase
-      .from("ai_providers")
-      .select("id, provider_code, base_url, available_models, default_model, is_default")
-      .eq("is_default", true)
-      .single();
-
-    console.log("Default provider query result:", defaultProvider?.provider_code || "not found", providerError?.message);
-
-    // Use Lovable AI if available, otherwise fall back to default provider
-    const provider = lovableProvider || defaultProvider;
-    
     console.log("Selected provider:", provider?.provider_code);
 
     if (!provider) {
@@ -107,15 +89,7 @@ serve(async (req) => {
 
     // For Lovable AI, use the LOVABLE_API_KEY from env
     let apiKey: string | undefined;
-    if (provider.provider_code === "lovable") {
-      apiKey = Deno.env.get("LOVABLE_API_KEY");
-      if (!apiKey) {
-        return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
+    {
       // Get API key for the provider
       const { data: keyData, error: keyError } = await supabase
         .from("ai_provider_keys")
@@ -180,42 +154,7 @@ Return ONLY the optimized merge prompt text, nothing else.`;
 
     console.log(`Calling AI provider: ${providerCode}, model: ${model}`);
 
-    if (providerCode === "lovable") {
-      // Use Lovable AI Gateway
-      console.log("Using Lovable AI Gateway...");
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Optimize this ${type}:\n\n${text}` },
-          ],
-        }),
-      });
-
-      console.log(`Lovable AI response status: ${response.status}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Lovable AI error response: ${errorText}`);
-        if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again later.");
-        }
-        if (response.status === 402) {
-          throw new Error("Lovable AI credits exhausted. Please add credits.");
-        }
-        throw new Error(`Lovable AI error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log("Lovable AI response received successfully");
-      optimizedText = data.choices?.[0]?.message?.content || "";
-    } else if (providerCode === "openai" || providerCode === "deepseek" || providerCode === "perplexity") {
+    if (providerCode === "openai" || providerCode === "deepseek" || providerCode === "perplexity") {
       const baseUrl = provider.base_url || "https://api.openai.com/v1";
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",

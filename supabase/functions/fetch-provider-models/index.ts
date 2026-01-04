@@ -8,13 +8,7 @@ const corsHeaders = {
 
 // Curated top 5 models per provider - only the most useful ones
 const CURATED_MODELS = {
-  lovable: [
-    { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", context_window: 1000000, supports_vision: true },
-    { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro", context_window: 2000000, supports_vision: true },
-    { id: "openai/gpt-5", name: "GPT-5", context_window: 128000, supports_vision: true },
-    { id: "openai/gpt-5-mini", name: "GPT-5 Mini", context_window: 128000, supports_vision: true },
-    { id: "openai/gpt-5-nano", name: "GPT-5 Nano", context_window: 128000, supports_vision: true },
-  ],
+
   openai: [
     { id: "gpt-5", name: "GPT-5", context_window: 128000, supports_vision: true },
     { id: "gpt-5-mini", name: "GPT-5 Mini", context_window: 128000, supports_vision: true },

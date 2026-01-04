@@ -136,7 +136,7 @@ serve(async (req) => {
       const codexData = persona[`${codexType}_codex`];
       if (!codexData) continue;
 
-      const codexName = codexType.split('_').map((word: string) => 
+      const codexName = codexType.split('_').map((word: string) =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
 
@@ -159,13 +159,13 @@ serve(async (req) => {
               <div class="label">${key.replace(/_/g, ' ').toUpperCase()}</div>
               <ul>
                 ${value.map((item: any) => {
-                  if (typeof item === 'string') {
-                    return `<li>${item}</li>`;
-                  } else if (typeof item === 'object') {
-                    return `<li><pre>${JSON.stringify(item, null, 2)}</pre></li>`;
-                  }
-                  return '';
-                }).join('')}
+            if (typeof item === 'string') {
+              return `<li>${item}</li>`;
+            } else if (typeof item === 'object') {
+              return `<li><pre>${JSON.stringify(item, null, 2)}</pre></li>`;
+            }
+            return '';
+          }).join('')}
               </ul>
             </div>
           `;
@@ -194,22 +194,12 @@ serve(async (req) => {
     `;
 
     // Generate PDF
-    const pdfResponse = await fetch('https://pdf.lovable.app/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        html: htmlContent,
-        options: {
-          format: 'A4',
-          printBackground: true,
-          margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
-        }
-      })
-    });
+    // PDF generation service removed as part of Lovable removal
+    // TODO: Integrate new PDF generation service (e.g., html-pdf-node, puppeteer, or external API)
+    console.error('PDF generation service (Lovable) has been removed.');
+    throw new Error('PDF generation service is currently unavailable. Please configure a new PDF provider.');
 
-    if (!pdfResponse.ok) {
-      throw new Error('Failed to generate PDF');
-    }
+
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
     const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));

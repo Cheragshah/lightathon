@@ -22,57 +22,155 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { personaRunId, codexId, codexIds } = await req.json();
+    const { personaRunId, codexId } = await req.json();
 
     console.log("Starting orchestration for persona run:", personaRunId);
-    if (codexIds && codexIds.length > 0) {
-      console.log("🎯 Targeting specific codexes (sequential):", codexIds.length, "codexes");
-    } else if (codexId) {
+    if (codexId) {
       console.log("🎯 Targeting specific codex:", codexId);
+    } else {
+      console.log("🔄 Auto-sequencing mode: Finding next pending codex");
     }
 
-    // Update persona run status
+    // Update persona run status if not already generating
     await supabase
       .from("persona_runs")
       .update({ status: "generating", started_at: new Date().toISOString() })
       .eq("id", personaRunId);
 
-    // Build query for codexes - filter by specific codexId(s) if provided
-    let codexQuery = supabase
+    // Fetch ALL codexes for this run to determine state
+    const { data: codexes, error: codexError } = await supabase
       .from("codexes")
       .select(`
         *,
         codex_prompt:codex_prompts!inner(id, depends_on_codex_id, depends_on_transcript)
       `)
-      .eq("persona_run_id", personaRunId);
-    
-    // If codexIds array is provided, filter to those specific codexes (for sequential processing)
-    if (codexIds && codexIds.length > 0) {
-      codexQuery = codexQuery.in("id", codexIds);
-    } else if (codexId) {
-      // Single codex mode (backward compatibility)
-      codexQuery = codexQuery.eq("id", codexId);
-    }
-    
-    const { data: codexes, error: codexError } = await codexQuery.order("codex_order", { ascending: true });
+      .eq("persona_run_id", personaRunId)
+      .order("codex_order", { ascending: true });
 
     if (codexError || !codexes) {
       throw new Error("Failed to load codexes");
     }
 
-    // Filter out codexes with 0 sections
     const validCodexes = codexes.filter(c => c.total_sections > 0);
-    const skippedCodexes = codexes.filter(c => c.total_sections === 0);
-    
-    if (skippedCodexes.length > 0) {
-      console.log(`⏭️ Skipping ${skippedCodexes.length} codexes with 0 sections:`, 
-        skippedCodexes.map(c => c.codex_name));
+
+    // Determine which codex to process
+    let codexToProcess: any = null;
+
+    if (codexId) {
+      // Single mode: Run specific codex
+      codexToProcess = validCodexes.find(c => c.id === codexId);
+      if (!codexToProcess) {
+        console.error(`Target codex ${codexId} not found in run`);
+      }
+    } else {
+      // Auto mode: Find first pending codex
+      codexToProcess = validCodexes.find(c =>
+        !['ready', 'ready_with_errors', 'failed', 'completed'].includes(c.status)
+      );
     }
 
-    const modeDescription = codexIds?.length > 0 ? ' (sequential batch mode)' : codexId ? ' (single codex mode)' : '';
-    console.log(`Found ${validCodexes.length} codexes to generate${modeDescription}`);
+    // If no codex to process, check if run is complete
+    if (!codexToProcess) {
+      const allComplete = validCodexes.every(c =>
+        ['ready', 'ready_with_errors', 'failed', 'completed'].includes(c.status)
+      );
 
-    // Get persona run data including transcript
+      if (allComplete) {
+        console.log("✅ All codexes completed! Finishing persona run.");
+
+        await supabase
+          .from("persona_runs")
+          .update({
+            status: "completed",
+            completed_at: new Date().toISOString()
+          })
+          .eq("id", personaRunId);
+
+        // Send notification
+        const { data: personaRunData } = await supabase
+          .from("persona_runs")
+          .select("user_id")
+          .eq("id", personaRunId)
+          .single();
+
+        if (personaRunData?.user_id) {
+          EdgeRuntime.waitUntil(
+            fetch(`${supabaseUrl}/functions/v1/send-codex-notification`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${supabaseKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                personaRunId: personaRunId,
+                userId: personaRunData.user_id,
+              }),
+            }).catch(e => console.error("Notification error:", e))
+          );
+        }
+
+        return new Response(JSON.stringify({ success: true, message: "Run completed" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log("⚠️ No pending codex found, but run not fully complete? (Maybe awaiting answers)");
+      return new Response(JSON.stringify({ success: true, message: "No actionable codex found" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`🚀 Processing codex: ${codexToProcess.codex_name} (${codexToProcess.status})`);
+
+    // --- Dependency Check ---
+    const codexPromptId = codexToProcess.codex_prompt?.id;
+    const dependsOnTranscript = codexToProcess.codex_prompt?.depends_on_transcript || false;
+    const dependencies: string[] = [];
+
+    if (codexPromptId) {
+      const { data: deps } = await supabase
+        .from('codex_prompt_dependencies')
+        .select('depends_on_codex_id')
+        .eq('codex_prompt_id', codexPromptId)
+        .order('display_order', { ascending: true });
+
+      if (deps) {
+        for (const d of deps) {
+          const name = await getDependencyCodexName(supabase, d.depends_on_codex_id);
+          if (name) dependencies.push(name);
+        }
+      }
+    }
+
+    // Verify dependencies are ready
+    for (const depName of dependencies) {
+      const depCodex = validCodexes.find(c => c.codex_name === depName);
+      if (depCodex && !['ready', 'ready_with_errors'].includes(depCodex.status)) {
+        console.log(`⏸️ Dependency ${depName} not ready (${depCodex.status}). Waiting...`);
+        // In sequential mode, if dependencies aren't ready, we generally can't proceed.
+        // However, since we process in order, previous ones SHOULD be ready.
+        // If they failed, we might be stuck.
+        if (depCodex.status === 'failed') {
+          throw new Error(`Dependency ${depName} failed. Cannot proceed with ${codexToProcess.codex_name}`);
+        }
+        // If still generating/pending, we wait (or exit if auto-chained, but recursion happens AFTER completion)
+        // If we are here in auto-mode, it means this is the FIRST pending one.
+        // If its dependency is NOT ready, but also NOT pending (e.g. it was skipped?), something is wrong.
+        // But usually deps are earlier in the list.
+
+        // Allow a short poll just in case of slight race/db lag
+        let retries = 0;
+        while (retries < 5) {
+          const { data: freshStatus } = await supabase.from('codexes').select('status').eq('id', depCodex.id).single();
+          if (['ready', 'ready_with_errors'].includes(freshStatus.status)) break;
+          await new Promise(r => setTimeout(r, 2000));
+          retries++;
+        }
+        if (retries >= 5) throw new Error(`Timeout waiting for dependency ${depName}`);
+      }
+    }
+
+    // --- Prepare Content ---
     const { data: personaRun } = await supabase
       .from("persona_runs")
       .select("answers_json, original_transcript")
@@ -81,400 +179,128 @@ serve(async (req) => {
 
     const userAnswers = personaRun?.answers_json || {};
     const originalTranscript = personaRun?.original_transcript || null;
+    let dependentContent: string | null = null;
 
-    // Build dependency-aware processing order and load question mappings
-    const codexDependencies = new Map<string, string[]>();
-    const codexTranscriptDeps = new Map<string, boolean>();
-    const codexQuestionMappings = new Map<string, string[]>();
-    
-    for (const codex of validCodexes) {
-      const codexPromptId = (codex.codex_prompt as any)?.id;
-      const dependsOnTranscript = (codex.codex_prompt as any)?.depends_on_transcript || false;
-      
-      codexTranscriptDeps.set(codex.codex_name, dependsOnTranscript);
-      
-      if (codexPromptId) {
-        // Get multiple dependencies from junction table
-        const { data: deps } = await supabase
-          .from('codex_prompt_dependencies')
-          .select('depends_on_codex_id')
-          .eq('codex_prompt_id', codexPromptId)
-          .order('display_order', { ascending: true });
-        
-        if (deps && deps.length > 0) {
-          const depIds = deps.map(d => d.depends_on_codex_id);
-          const depNames: string[] = [];
-          for (const depId of depIds) {
-            const name = await getDependencyCodexName(supabase, depId);
-            if (name) depNames.push(name);
-          }
-          codexDependencies.set(codex.codex_name, depNames);
-        } else {
-          codexDependencies.set(codex.codex_name, []);
-        }
-
-        // Load question mappings for this codex
-        const questionIds = await getCodexQuestionIds(supabase, codexPromptId);
-        codexQuestionMappings.set(codex.codex_name, questionIds);
+    if (dependsOnTranscript && originalTranscript) {
+      dependentContent = `ORIGINAL TRANSCRIPT:\n\n${originalTranscript}`;
+    } else if (dependencies.length > 0) {
+      let combined = "";
+      for (const depName of dependencies) {
+        const content = await getCompletedCodexContent(supabase, personaRunId, depName);
+        combined += content ? `\n=== CONTENT FROM: ${depName.toUpperCase()} ===\n\n${content}\n` : "";
       }
+      dependentContent = combined || null;
     }
 
-    console.log("Codex dependencies:", Object.fromEntries(codexDependencies));
-    console.log("Codex transcript dependencies:", Object.fromEntries(codexTranscriptDeps));
-    console.log("Codex question mappings:", Object.fromEntries(codexQuestionMappings));
+    const questionIds = await getCodexQuestionIds(supabase, codexPromptId);
+    const filteredAnswers = questionIds.length > 0
+      ? Object.fromEntries(Object.entries(userAnswers).filter(([k]) => questionIds.includes(k)))
+      : userAnswers;
 
-    // Helper function to filter answers by question IDs
-    const filterAnswersByQuestionIds = (answers: any, questionIds: string[]) => {
-      if (questionIds.length === 0) return answers;
-      const filtered: any = {};
-      for (const qId of questionIds) {
-        if (answers[qId] !== undefined) {
-          filtered[qId] = answers[qId];
-        }
-      }
-      return filtered;
-    };
+    // --- Execute Generation ---
+    await supabase.from("codexes").update({ status: "generating" }).eq("id", codexToProcess.id);
 
-    // Process codexes respecting dependencies
-    const completedCodexes = new Set<string>();
-    
-    // Pre-populate with already completed codexes
-    for (const codex of validCodexes) {
-      if (codex.status === 'ready' || codex.status === 'ready_with_errors') {
-        completedCodexes.add(codex.codex_name);
-        console.log(`✅ ${codex.codex_name} already completed, adding to dependency set`);
-      }
+    // Create sections if needed
+    const { data: existingSections } = await supabase
+      .from("codex_sections")
+      .select("id")
+      .eq("codex_id", codexToProcess.id);
+
+    if (!existingSections || existingSections.length === 0) {
+      const sectionNames = await getCodexSectionNamesFromDB(supabase, codexToProcess.codex_name);
+      const sectionRecords = Array.from({ length: codexToProcess.total_sections }).map((_, i) => ({
+        codex_id: codexToProcess.id,
+        section_name: sectionNames?.[i] || `Section ${i + 1}`,
+        section_index: i,
+        status: "pending",
+      }));
+      await supabase.from("codex_sections").insert(sectionRecords);
     }
 
-    // When in single-codex mode, check ALL dependencies from the database
-    if (codexId && validCodexes.length > 0) {
-      const targetCodex = validCodexes[0];
-      const dependsOn = codexDependencies.get(targetCodex.codex_name) || [];
-      
-      for (const depName of dependsOn) {
-        if (!completedCodexes.has(depName)) {
-          const { data: depCodex } = await supabase
-            .from("codexes")
-            .select("status")
-            .eq("persona_run_id", personaRunId)
-            .eq("codex_name", depName)
-            .single();
-          
-          if (depCodex && (depCodex.status === 'ready' || depCodex.status === 'ready_with_errors')) {
-            completedCodexes.add(depName);
-            console.log(`✅ ${depName} is ready in database, adding to dependency set`);
-          }
-        }
-      }
-    }
+    // Generate sections
+    let successCount = 0;
+    const BATCH_SIZE = 5; // Sequential batching for this codex
 
-    for (const codex of validCodexes) {
-      // Skip if already complete
-      if (completedCodexes.has(codex.codex_name)) {
-        console.log(`⏭️ Skipping ${codex.codex_name} - already complete`);
-        continue;
-      }
-      
-      // Check if this codex has dependencies that need to complete first
-      const dependsOn = codexDependencies.get(codex.codex_name) || [];
-      if (dependsOn.length > 0) {
-        // Wait for ALL dependencies to complete with database polling
-        for (const depName of dependsOn) {
-          if (!completedCodexes.has(depName)) {
-            console.log(`⏸️ ${codex.codex_name} waiting for ${depName} to complete...`);
-            let waitCount = 0;
-            const MAX_WAIT = 30; // Reduced from 60 to 30 (1 minute instead of 5)
-            
-            while (!completedCodexes.has(depName) && waitCount < MAX_WAIT) {
-              // Poll database for dependency status
-              const { data: depStatus } = await supabase
-                .from("codexes")
-                .select("status")
-                .eq("persona_run_id", personaRunId)
-                .eq("codex_name", depName)
-                .single();
-              
-              if (depStatus && (depStatus.status === 'ready' || depStatus.status === 'ready_with_errors')) {
-                completedCodexes.add(depName);
-                console.log(`✅ ${depName} now ready (polled from database)`);
-                break;
-              }
-              
-              await new Promise(resolve => setTimeout(resolve, 2000)); // Reduced from 5s to 2s
-              waitCount++;
-            }
-            
-            if (!completedCodexes.has(depName)) {
-              console.warn(`⚠️ Timeout waiting for ${depName}, proceeding anyway`);
-            }
-          }
-        }
-      }
-
-      // Get dependent content (codex or transcript)
-      let dependentContent: string | null = null;
-      
-      // Check if depends on transcript
-      if (codexTranscriptDeps.get(codex.codex_name) && originalTranscript) {
-        console.log(`📄 Using original transcript for ${codex.codex_name}`);
-        dependentContent = `ORIGINAL TRANSCRIPT:\n\n${originalTranscript}`;
-      } 
-      // Otherwise check for codex dependencies
-      else if (dependsOn.length > 0) {
-        console.log(`📥 Fetching content from ${dependsOn.length} codex(es) for ${codex.codex_name}`);
-        let combinedContent = "";
-        for (const depName of dependsOn) {
-          const content = await getCompletedCodexContent(supabase, personaRunId, depName);
-          if (content) {
-            combinedContent += `\n=== CONTENT FROM: ${depName.toUpperCase()} ===\n\n${content}\n`;
-          } else {
-            console.warn(`⚠️ Could not fetch content from ${depName}`);
-          }
-        }
-        dependentContent = combinedContent || null;
-      }
-
-      // Filter answers based on question mappings
-      const questionIds = codexQuestionMappings.get(codex.codex_name) || [];
-      const filteredAnswers = filterAnswersByQuestionIds(userAnswers, questionIds);
-      
-      if (questionIds.length > 0) {
-        console.log(`📝 Using ${Object.keys(filteredAnswers).length} selected Q&A for ${codex.codex_name}`);
-      } else {
-        console.log(`📝 Using all Q&A for ${codex.codex_name} (no question filter)`);
-      }
-
-      // Process this codex
-      try {
-        console.log(`Starting generation for: ${codex.codex_name}`);
-
-        // Update codex status to generating
-        await supabase
-          .from("codexes")
-          .update({ status: "generating" })
-          .eq("id", codex.id);
-
-        // Get section names from database
-        const sectionNames = await getCodexSectionNamesFromDB(supabase, codex.codex_name);
-        if (!sectionNames || sectionNames.length === 0) {
-          throw new Error(`No section names found in database for ${codex.codex_name}`);
-        }
-        
-        // Check if sections already exist (e.g., from full re-run)
-        const { data: existingSections } = await supabase
-          .from("codex_sections")
-          .select("id")
-          .eq("codex_id", codex.id);
-
-        // Only create sections if they don't exist
-        if (!existingSections || existingSections.length === 0) {
-          const sectionRecords = [];
-          for (let i = 0; i < codex.total_sections; i++) {
-            sectionRecords.push({
-              codex_id: codex.id,
-              section_name: sectionNames[i] || `Section ${i + 1}`,
-              section_index: i,
-              status: "pending",
-            });
-          }
-
-          await supabase.from("codex_sections").insert(sectionRecords);
-          console.log(`Created ${sectionRecords.length} sections for ${codex.codex_name}`);
-        } else {
-          console.log(`Using ${existingSections.length} existing sections for ${codex.codex_name}`);
-        }
-
-        // Generate sections in controlled batches (increased for scalability)
-        let successCount = 0;
-        let errorCount = 0;
-        const BATCH_SIZE = 10; // Use larger batch for faster parallel processing
-
-        for (let sectionIndex = 0; sectionIndex < codex.total_sections; sectionIndex += BATCH_SIZE) {
-          const sectionBatch = [];
-          const batchEnd = Math.min(sectionIndex + BATCH_SIZE, codex.total_sections);
-          
-          for (let idx = sectionIndex; idx < batchEnd; idx++) {
-            sectionBatch.push(
-              (async (index) => {
-                try {
-                  console.log(`Generating ${codex.codex_name} - Section ${index + 1}`);
-
-                  const response = await fetch(`${supabaseUrl}/functions/v1/generate-codex-section`, {
-                    method: "POST",
-                    headers: {
-                      "Authorization": `Bearer ${supabaseKey}`,
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      codexId: codex.id,
-                      codexName: codex.codex_name,
-                      sectionIndex: index,
-                      userAnswers: filteredAnswers,
-                      dependentCodexContent: dependentContent,
-                    }),
-                  });
-
-                  if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Section generation failed: ${response.status} - ${errorText}`);
-                  }
-
-                  const result = await response.json();
-                  
-                  if (result.error) {
-                    console.error(`Error in section ${index}:`, result.error);
-                    return { success: false, index, error: result.error };
-                  }
-                  
-                  return { success: true, index };
-                } catch (sectionError) {
-                  console.error(`Failed to generate section ${index}:`, sectionError);
-                  
-                  // Mark section as error in database
-                  await supabase
-                    .from("codex_sections")
-                    .update({ 
-                      status: "error",
-                      error_message: (sectionError as Error).message
-                    })
-                    .eq("codex_id", codex.id)
-                    .eq("section_index", index);
-                  
-                  return { success: false, index, error: (sectionError as Error).message };
-                }
-              })(idx)
-            );
-          }
-
-          // Wait for this batch to complete
-          const batchResults = await Promise.all(sectionBatch);
-          successCount += batchResults.filter(r => r.success).length;
-          errorCount += batchResults.filter(r => !r.success).length;
-          
-          console.log(`${codex.codex_name} batch complete: ${successCount}/${codex.total_sections} successful, ${errorCount} errors`);
-          
-          // Small delay between section batches
-          if (batchEnd < codex.total_sections) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        console.log(`✅ Completed ${codex.codex_name} - ${successCount}/${codex.total_sections} sections successful`);
-        
-        // Mark this codex as complete for dependencies
-        completedCodexes.add(codex.codex_name);
-      } catch (codexError) {
-        console.error(`Failed to generate codex ${codex.codex_name}:`, codexError);
-        await supabase
-          .from("codexes")
-          .update({ 
-            status: "failed"
-          })
-          .eq("id", codex.id);
-      }
-    }
-
-    // Check if all codexes are complete
-    const { data: updatedCodexes } = await supabase
-      .from("codexes")
-      .select("status")
-      .eq("persona_run_id", personaRunId);
-
-    const allComplete = updatedCodexes?.every(c => 
-      c.status === "ready" || c.status === "ready_with_errors" || c.status === "failed"
-    );
-
-    if (allComplete) {
-      // Get persona run user_id for notification
-      const { data: personaRunData } = await supabase
-        .from("persona_runs")
-        .select("user_id")
-        .eq("id", personaRunId)
-        .single();
-
-      await supabase
-        .from("persona_runs")
-        .update({ 
-          status: "completed",
-          completed_at: new Date().toISOString()
-        })
-        .eq("id", personaRunId);
-
-      console.log("Persona run completed!");
-
-      // Send email notification to user
-      if (personaRunData?.user_id) {
-        try {
-          const notificationResponse = await fetch(`${supabaseUrl}/functions/v1/send-codex-notification`, {
+    for (let i = 0; i < codexToProcess.total_sections; i += BATCH_SIZE) {
+      const batch = [];
+      for (let j = i; j < Math.min(i + BATCH_SIZE, codexToProcess.total_sections); j++) {
+        batch.push(
+          fetch(`${supabaseUrl}/functions/v1/generate-codex-section`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${supabaseKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              personaRunId: personaRunId,
-              userId: personaRunData.user_id,
+              codexId: codexToProcess.id,
+              codexName: codexToProcess.codex_name,
+              sectionIndex: j,
+              userAnswers: filteredAnswers,
+              dependentCodexContent: dependentContent,
             }),
-          });
-
-          if (notificationResponse.ok) {
-            console.log("Email notification sent successfully");
-          } else {
-            console.log("Email notification skipped or failed:", await notificationResponse.text());
-          }
-        } catch (notifyError) {
-          console.error("Error sending email notification:", notifyError);
-          // Don't fail the whole process for notification errors
-        }
+          }).then(async res => {
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+          }).catch(async err => {
+            console.error(`Section ${j} error:`, err);
+            await supabase.from("codex_sections").update({ status: "error", error_message: err.message }).eq("codex_id", codexToProcess.id).eq("section_index", j);
+            return { error: err.message };
+          })
+        );
       }
+      const results = await Promise.all(batch);
+      successCount += results.filter(r => !r.error).length;
+      // Wait a bit between batches
+      if (i + BATCH_SIZE < codexToProcess.total_sections) await new Promise(r => setTimeout(r, 1000));
     }
 
-    // Schedule a watchdog retry after 5 minutes to catch any stuck sections
-    EdgeRuntime.waitUntil((async () => {
-      try {
-        // Wait 5 minutes before checking for stuck sections
-        await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
-        
-        console.log(`Watchdog: Checking for stuck sections in persona run ${personaRunId}`);
-        
-        const watchdogResponse = await fetch(`${supabaseUrl}/functions/v1/retry-pending-sections`, {
+    // Update status
+    const isSuccess = successCount === codexToProcess.total_sections;
+    if (isSuccess) {
+      await supabase.from("codexes").update({ status: "ready", completed_sections: successCount }).eq("id", codexToProcess.id);
+      console.log(`✅ Codex ${codexToProcess.codex_name} completed successfully.`);
+    } else {
+      await supabase.from("codexes").update({ status: "ready_with_errors", completed_sections: successCount }).eq("id", codexToProcess.id);
+      console.warn(`⚠️ Codex ${codexToProcess.codex_name} completed with errors.`);
+    }
+
+    // --- Recursive Chain Trigger ---
+    if (!codexId) { // Only if in Auto Mode
+      console.log("🔄 Triggering next codex in sequence...");
+      EdgeRuntime.waitUntil(
+        fetch(`${supabaseUrl}/functions/v1/orchestrate-codexes`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${supabaseKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            personaRunId,
-            autoRetry: true
+            personaRunId
           }),
-        });
-        
-        if (watchdogResponse.ok) {
-          const result = await watchdogResponse.json();
-          console.log(`Watchdog completed:`, result);
-        } else {
-          console.error("Watchdog retry failed:", await watchdogResponse.text());
-        }
-      } catch (watchdogError) {
-        console.error("Watchdog error:", watchdogError);
-      }
-    })());
+        })
+      );
+    }
 
-    return new Response(
-      JSON.stringify({ success: true, message: "Generation complete" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+    // Watchdog for this specific codex (cleanup)
+    EdgeRuntime.waitUntil(
+      new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000)).then(() =>
+        fetch(`${supabaseUrl}/functions/v1/retry-pending-sections`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ personaRunId, codexId: codexToProcess.id, autoRetry: true }),
+        })
+      ).catch(console.error)
     );
+
+    return new Response(JSON.stringify({ success: true, message: `Processed ${codexToProcess.codex_name}` }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   } catch (error) {
     console.error("Error in orchestrate-codexes:", error);
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

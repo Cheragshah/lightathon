@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+
     if (authError || !user) {
       throw new Error('Unauthorized');
     }
@@ -59,7 +59,7 @@ serve(async (req) => {
       .from('codex_generation_queue')
       .select(`
         *,
-        codex_prompts:codex_prompt_id (
+        codex_prompts (
           id,
           codex_name,
           system_prompt,
@@ -83,10 +83,10 @@ serve(async (req) => {
 
     if (!queueItems || queueItems.length === 0) {
       console.log('No pending items in queue');
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         message: 'No pending items to process',
-        processed: 0 
+        processed: 0
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -103,12 +103,9 @@ serve(async (req) => {
     }
 
     let processedCount = 0;
+    const runsToTrigger = new Set<string>();
 
     for (const [userId, items] of userQueueMap) {
-      // Collect all created codex IDs for this user to invoke orchestration once
-      const createdCodexIds: string[] = [];
-      let personaRunId: string | null = null;
-
       try {
         // Check if user already has ANY persona run (use most recent)
         const { data: existingRun } = await supabase
@@ -119,6 +116,7 @@ serve(async (req) => {
           .limit(1)
           .single();
 
+        let personaRunId: string;
         let answersJson: any;
 
         if (existingRun) {
@@ -126,12 +124,12 @@ serve(async (req) => {
           personaRunId = existingRun.id;
           answersJson = existingRun.answers_json;
           console.log(`Using existing persona run ${personaRunId} (status: ${existingRun.status}) for user ${userId}`);
-          
+
           // If run was completed, update it to generating status
           if (existingRun.status === 'completed' || existingRun.status === 'ready') {
             await supabase
               .from('persona_runs')
-              .update({ 
+              .update({
                 status: 'generating',
                 started_at: new Date().toISOString()
               })
@@ -142,15 +140,15 @@ serve(async (req) => {
           // No existing run - need to create one
           // First check if we have answers from somewhere
           console.log(`No existing persona run for user ${userId}, creating new one`);
-          
+
           // For admin-triggered without existing run, we need the user to have answered questions
           // Mark queue items as failed since we have no answers
           console.log(`No answers found for user ${userId}, skipping`);
           for (const item of items) {
             await supabase
               .from('codex_generation_queue')
-              .update({ 
-                status: 'failed', 
+              .update({
+                status: 'failed',
                 error_message: 'No existing persona run with answers found for user',
                 completed_at: new Date().toISOString()
               })
@@ -163,7 +161,7 @@ serve(async (req) => {
         for (const item of items) {
           await supabase
             .from('codex_generation_queue')
-            .update({ 
+            .update({
               status: 'processing',
               persona_run_id: personaRunId,
               started_at: new Date().toISOString()
@@ -174,7 +172,7 @@ serve(async (req) => {
         // Update persona run status to generating
         await supabase
           .from('persona_runs')
-          .update({ 
+          .update({
             status: 'generating',
             started_at: new Date().toISOString()
           })
@@ -201,7 +199,7 @@ serve(async (req) => {
             // Mark queue item as completed
             await supabase
               .from('codex_generation_queue')
-              .update({ 
+              .update({
                 status: 'completed',
                 completed_at: new Date().toISOString()
               })
@@ -215,13 +213,13 @@ serve(async (req) => {
             .select('id')
             .eq('codex_prompt_id', codexPrompt.id)
             .eq('is_active', true);
-          
+
           const actualSectionCount = sectionPrompts?.length || 1;
 
           // Create the codex with correct section count
           // If awaitAnswers is true, set status to 'awaiting_answers' instead of 'generating'
           const codexStatus = awaitAnswers ? 'awaiting_answers' : 'generating';
-          
+
           const { data: newCodex, error: codexError } = await supabase
             .from('codexes')
             .insert({
@@ -240,7 +238,7 @@ serve(async (req) => {
             console.error(`Error creating codex:`, codexError);
             await supabase
               .from('codex_generation_queue')
-              .update({ 
+              .update({
                 status: 'failed',
                 error_message: codexError.message,
                 completed_at: new Date().toISOString()
@@ -251,43 +249,23 @@ serve(async (req) => {
 
           console.log(`Created codex ${newCodex.id} for ${codexPrompt.codex_name} with status ${codexStatus} and ${actualSectionCount} sections`);
 
-          // Collect codex ID for batch orchestration
-          createdCodexIds.push(newCodex.id);
-
-          if (awaitAnswers) {
+          // Only add to trigger set if NOT awaiting answers
+          if (!awaitAnswers) {
+            runsToTrigger.add(personaRunId);
+          } else {
             console.log(`Codex ${newCodex.id} set to awaiting_answers - waiting for user input`);
           }
 
           // Mark queue item as completed (actual generation happens async)
           await supabase
             .from('codex_generation_queue')
-            .update({ 
+            .update({
               status: 'completed',
               completed_at: new Date().toISOString()
             })
             .eq('id', item.id);
 
           processedCount++;
-        }
-
-        // After all codexes are created, invoke orchestration ONCE with all codex IDs
-        // This ensures sequential processing in codex_order
-        if (!awaitAnswers && createdCodexIds.length > 0 && personaRunId) {
-          try {
-            console.log(`Invoking orchestrate-codexes for ${createdCodexIds.length} codexes sequentially`);
-            const { error: generateError } = await supabase.functions.invoke('orchestrate-codexes', {
-              body: { 
-                personaRunId,
-                codexIds: createdCodexIds, // Pass all codex IDs for sequential processing
-              }
-            });
-
-            if (generateError) {
-              console.error(`Error invoking orchestrate-codexes:`, generateError);
-            }
-          } catch (invokeError) {
-            console.error(`Failed to invoke orchestrate-codexes:`, invokeError);
-          }
         }
       } catch (userError) {
         console.error(`Error processing user ${userId}:`, userError);
@@ -296,7 +274,26 @@ serve(async (req) => {
 
     console.log(`Processed ${processedCount} queue items`);
 
-    return new Response(JSON.stringify({ 
+    // Trigger orchestration for each unique persona run
+    console.log(`Triggering orchestration for ${runsToTrigger.size} persona runs:`, [...runsToTrigger]);
+
+    for (const personaRunId of runsToTrigger) {
+      try {
+        const { error: invokeError } = await supabase.functions.invoke('orchestrate-codexes', {
+          body: { personaRunId } // No codexId passed -> triggers auto-sequential mode
+        });
+
+        if (invokeError) {
+          console.error(`Error invoking orchestration for run ${personaRunId}:`, invokeError);
+        } else {
+          console.log(`Successfully triggered orchestration for run ${personaRunId}`);
+        }
+      } catch (err) {
+        console.error(`Failed to trigger orchestration for run ${personaRunId}:`, err);
+      }
+    }
+
+    return new Response(JSON.stringify({
       success: true,
       message: `Triggered generation for ${processedCount} codex(es)`,
       processed: processedCount
@@ -306,8 +303,8 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     console.error('Error in admin-trigger-codex-generation:', error);
-    return new Response(JSON.stringify({ 
-      error: errorMessage 
+    return new Response(JSON.stringify({
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

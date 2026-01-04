@@ -100,9 +100,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { personaRunId, autoRetry } = await req.json();
+    const { personaRunId, codexId, autoRetry } = await req.json();
 
-    console.log("Retrying stuck sections", autoRetry ? "(auto-retry)" : `for persona run: ${personaRunId}`);
+    console.log("Retrying stuck sections", autoRetry ? "(auto-retry)" : `for persona run: ${personaRunId}`, codexId ? `(Codex: ${codexId})` : "");
 
     // Find all pending sections older than 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -145,6 +145,12 @@ serve(async (req) => {
       stuckGeneratingQuery = stuckGeneratingQuery.eq("codex.persona_run_id", personaRunId);
     }
 
+    // If codexId is provided, filter by it
+    if (codexId) {
+      pendingQuery = pendingQuery.eq("codex_id", codexId);
+      stuckGeneratingQuery = stuckGeneratingQuery.eq("codex_id", codexId);
+    }
+
     const [pendingResult, stuckResult] = await Promise.all([
       pendingQuery,
       stuckGeneratingQuery
@@ -168,7 +174,7 @@ serve(async (req) => {
       if (personaRunId) {
         await reconcileStatuses(supabase, personaRunId);
       }
-      
+
       return new Response(
         JSON.stringify({
           success: true,

@@ -118,46 +118,54 @@ export default function AdminDashboard() {
   const checkAdminAccess = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         navigate("/auth");
         return;
       }
 
-      const response = await supabase.functions.invoke('verify-admin');
-      
-      if (response.error) {
-        console.error("Error verifying admin:", response.error);
+      // Check access using RPC directly via useUserRole logic
+      const { data: role } = await supabase.rpc('get_user_role', {
+        _user_id: session.user.id
+      });
+
+      // Strict check: Must be admin or moderator
+      if (role !== 'admin' && role !== 'moderator') {
         navigate("/dashboard");
         return;
       }
 
-      const data = response.data;
-      
-      if (!data.isAdmin && !data.isModerator) {
-        navigate("/dashboard");
-        return;
+      setIsAdmin(role === 'admin');
+      setIsModerator(role === 'moderator');
+
+      // Attempt to load stats from edge function, but don't block access if it fails
+      try {
+        const response = await supabase.functions.invoke('verify-admin');
+
+        if (response.data) {
+          const data = response.data;
+          setUsers(data.users || []);
+          setStats({
+            totalUsers: data.stats?.totalUsers || 0,
+            totalPersonaRuns: data.stats?.totalPersonaRuns || 0,
+            completedRuns: data.stats?.completedRuns || 0,
+            activeRuns: data.stats?.activeRuns || 0,
+            aiUsage: data.stats?.aiUsage || 0,
+            failedRuns: data.stats?.failedRuns || 0
+          });
+          setAiUsage({
+            totalTokens: data.stats?.totalTokens || 0,
+            totalCost: data.stats?.totalCost || 0,
+            modelBreakdown: data.stats?.modelBreakdown || {},
+            requestsToday: data.stats?.requestsToday || 0,
+            recentUsage: data.stats?.recentUsage || []
+          });
+          setActiveRuns(data.activeRuns || []);
+        }
+      } catch (err) {
+        console.warn("Could not load full admin stats (Edge Function might be unavailable), but access is granted via DB role.");
       }
 
-      setIsAdmin(data.isAdmin);
-      setIsModerator(data.isModerator);
-      setUsers(data.users || []);
-      setStats({
-        totalUsers: data.stats?.totalUsers || 0,
-        totalPersonaRuns: data.stats?.totalPersonaRuns || 0,
-        completedRuns: data.stats?.completedRuns || 0,
-        activeRuns: data.stats?.activeRuns || 0,
-        aiUsage: data.stats?.aiUsage || 0,
-        failedRuns: data.stats?.failedRuns || 0
-      });
-      setAiUsage({
-        totalTokens: data.stats?.totalTokens || 0,
-        totalCost: data.stats?.totalCost || 0,
-        modelBreakdown: data.stats?.modelBreakdown || {},
-        requestsToday: data.stats?.requestsToday || 0,
-        recentUsage: data.stats?.recentUsage || []
-      });
-      setActiveRuns(data.activeRuns || []);
     } catch (error) {
       console.error("Error checking admin access:", error);
       navigate("/dashboard");
@@ -235,13 +243,13 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <UsersTable 
-                users={users} 
+              <UsersTable
+                users={users}
                 onRoleUpdated={loadStats}
                 selectedRunIds={selectedRunIds}
                 onSelectRun={(runId) => {
-                  setSelectedRunIds(prev => 
-                    prev.includes(runId) 
+                  setSelectedRunIds(prev =>
+                    prev.includes(runId)
                       ? prev.filter(id => id !== runId)
                       : [...prev, runId]
                   );
@@ -284,7 +292,7 @@ export default function AdminDashboard() {
                 <UsageCharts users={users} aiUsage={aiUsage} />
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Generation Analytics</CardTitle>
@@ -363,12 +371,12 @@ export default function AdminDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-          isAdmin={isAdmin} 
+        <AdminSidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          isAdmin={isAdmin}
         />
-        
+
         <SidebarInset className="flex-1">
           {/* Header */}
           <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:px-6">

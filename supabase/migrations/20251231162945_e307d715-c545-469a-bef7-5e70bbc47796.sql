@@ -8,7 +8,7 @@ CREATE TABLE public.early_signups (
 ALTER TABLE public.early_signups ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can signup for early access" ON public.early_signups FOR INSERT WITH CHECK (true);
-CREATE POLICY "Admins can view signups" ON public.early_signups FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins can view signups" ON public.early_signups FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- Create app_settings table for dynamic configuration
 CREATE TABLE public.app_settings (
@@ -20,7 +20,7 @@ CREATE TABLE public.app_settings (
 
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view settings" ON public.app_settings FOR SELECT USING (true);
-CREATE POLICY "Admins can manage settings" ON public.app_settings FOR ALL USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins can manage settings" ON public.app_settings FOR ALL USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- Insert default settings
 INSERT INTO public.app_settings (key, value) VALUES ('countdown_target_date', '"2025-02-01T00:00:00Z"');

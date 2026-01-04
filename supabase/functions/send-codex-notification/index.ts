@@ -88,7 +88,7 @@ serve(async (req) => {
     }
 
     const resendApiKey = String(resendSetting.setting_value);
-    
+
     if (!resendApiKey || resendApiKey === "" || resendApiKey === "null") {
       console.log("Resend API key is empty, skipping email notification");
       return new Response(
@@ -99,7 +99,7 @@ serve(async (req) => {
 
     // Get user email from auth
     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
-    
+
     if (userError || !userData?.user?.email) {
       console.error("Could not get user email:", userError);
       return new Response(
@@ -142,8 +142,8 @@ serve(async (req) => {
       .eq("setting_key", "notification_from_email")
       .maybeSingle();
 
-    const fromEmail = fromEmailSetting?.setting_value 
-      ? String(fromEmailSetting.setting_value) 
+    const fromEmail = fromEmailSetting?.setting_value
+      ? String(fromEmailSetting.setting_value)
       : "Codex Generator <onboarding@resend.dev>";
 
     // Get email template
@@ -153,7 +153,7 @@ serve(async (req) => {
       .eq("setting_key", "email_template")
       .maybeSingle();
 
-    const template: EmailTemplate = templateSetting?.setting_value 
+    const template: EmailTemplate = templateSetting?.setting_value
       ? { ...DEFAULT_TEMPLATE, ...(templateSetting.setting_value as Partial<EmailTemplate>) }
       : DEFAULT_TEMPLATE;
 
@@ -172,11 +172,11 @@ serve(async (req) => {
 
     // Build email content
     const codexList = completedCodexes.map(c => `✅ ${c.codex_name}`).join("<br>");
-    const failedList = failedCodexes.length > 0 
+    const failedList = failedCodexes.length > 0
       ? `<br><br><strong>Failed Codexes:</strong><br>${failedCodexes.map(c => `❌ ${c.codex_name}`).join("<br>")}`
       : "";
 
-    const viewUrl = `${supabaseUrl?.replace('.supabase.co', '.lovable.app') || 'https://your-app.lovable.app'}/persona-run/${personaRunId}`;
+    const viewUrl = `${supabaseUrl?.replace('.supabase.co', '.vercel.app') || 'https://your-app.com'}/persona-run/${personaRunId}`;
 
     // Apply placeholders to template
     const subject = replacePlaceholders(template.subject, placeholderData);

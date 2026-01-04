@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Loader2, 
-  Key, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Loader2,
+  Key,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   Eye,
   EyeOff,
@@ -136,15 +136,46 @@ export const AIProvidersManager = () => {
 
     setSaving(prev => ({ ...prev, [providerId]: true }));
     try {
-      const { error } = await supabase.functions.invoke("save-ai-provider-key", {
-        body: { providerId, apiKey: apiKey.trim() },
-      });
+      // Direct DB access since Edge Functions are not deployed
+      // 1. Check if key exists
+      const { data: existingKey } = await supabase
+        .from("ai_provider_keys")
+        .select("id")
+        .eq("provider_id", providerId)
+        .single();
+
+      let error;
+
+      if (existingKey) {
+        // 2. Update existing key
+        const { error: updateError } = await supabase
+          .from("ai_provider_keys")
+          .update({
+            api_key_encrypted: apiKey.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingKey.id);
+        error = updateError;
+      } else {
+        // 3. Insert new key
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Authentication required");
+
+        const { error: insertError } = await supabase
+          .from("ai_provider_keys")
+          .insert({
+            provider_id: providerId,
+            api_key_encrypted: apiKey.trim(),
+            created_by: user.id,
+          });
+        error = insertError;
+      }
 
       if (error) throw error;
 
       toast({
         title: "API key saved",
-        description: "The API key has been saved successfully",
+        description: "The API key has been saved successfully (Direct DB)",
       });
 
       // Clear the input and refresh
@@ -226,8 +257,8 @@ export const AIProvidersManager = () => {
       }
 
       const { data, error } = await supabase.functions.invoke("test-ai-provider", {
-        body: { 
-          providerId, 
+        body: {
+          providerId,
           apiKey: keyToTest,
           model: selectedModels[providerId] || provider.available_models[0]?.id,
         },
@@ -250,7 +281,7 @@ export const AIProvidersManager = () => {
         } else if (errorMessage.includes("401") || errorMessage.includes("invalid") || errorMessage.includes("unauthorized")) {
           errorMessage = "Invalid API key: Please check that your API key is correct and active.";
         }
-        
+
         toast({
           title: "Test failed",
           description: errorMessage,
@@ -265,8 +296,10 @@ export const AIProvidersManager = () => {
         errorMessage = "Billing issue: Your API account has insufficient funds.";
       } else if (errorMessage.includes("429")) {
         errorMessage = "Rate limit exceeded: Please wait and try again.";
+      } else if (errorMessage.includes("Failed to send a request") || errorMessage.includes("Edge Function")) {
+        errorMessage = "Backend testing service unavailable (Edge Functions offline). Your key is saved locally.";
       }
-      
+
       toast({
         title: "Test failed",
         description: errorMessage,
@@ -339,7 +372,9 @@ export const AIProvidersManager = () => {
     } catch (error: any) {
       toast({
         title: "Error fetching models",
-        description: error.message,
+        description: error.message.includes("Edge Function")
+          ? "Model fetching unavailable (Edge Functions offline). Using default model list."
+          : error.message,
         variant: "destructive",
       });
     } finally {
@@ -375,12 +410,7 @@ export const AIProvidersManager = () => {
     );
   }
 
-  // Check if Lovable AI provider exists and sort to show it first
-  const lovableProvider = providers.find(p => p.provider_code === "lovable");
-  const sortedProviders = [
-    ...providers.filter(p => p.provider_code === "lovable"),
-    ...providers.filter(p => p.provider_code !== "lovable"),
-  ];
+  const sortedProviders = providers;
 
   return (
     <Card>
@@ -395,73 +425,28 @@ export const AIProvidersManager = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* System Default Indicator */}
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Star className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-primary">System Default:</span>
-                <Badge className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white border-0">
-                  ✨ Lovable AI
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Lovable AI (Gemini 2.5 Flash) is automatically used as the primary AI provider. 
-                No API key required — it's pre-configured and ready to use.
-              </p>
-            </div>
-            {lovableProvider && (
-              <Badge variant="outline" className="gap-1 bg-green-500/10 text-green-600 border-green-500/30">
-                <CheckCircle2 className="h-3 w-3" /> Active
-              </Badge>
-            )}
-          </div>
-        </div>
+
 
         <Accordion type="multiple" className="w-full">
           {sortedProviders.map((provider) => (
             <AccordionItem key={provider.id} value={provider.id}>
               <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center justify-between w-full pr-4">
+                <div className="flex flex-1 items-center justify-between pr-4">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{provider.name}</span>
-                    {provider.provider_code === "lovable" && (
-                      <Badge className="gap-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 text-xs">
-                        ✨ System Default
-                      </Badge>
-                    )}
-                    {provider.is_default && provider.provider_code !== "lovable" && (
+                    {provider.is_default && (
                       <Badge variant="default" className="gap-1 bg-yellow-500 hover:bg-yellow-600">
-                        <Star className="h-3 w-3" /> Fallback
+                        <Star className="h-3 w-3" /> System Default
                       </Badge>
                     )}
                   </div>
-                  {provider.provider_code === "lovable" ? (
-                    <Badge className="gap-1 bg-green-500 hover:bg-green-600">
-                      <CheckCircle2 className="h-3 w-3" /> Ready
-                    </Badge>
-                  ) : (
-                    getStatusBadge(provider)
-                  )}
+                  {getStatusBadge(provider)}
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4 pt-2">
-                  {/* Lovable AI special info */}
-                  {provider.provider_code === "lovable" && (
-                    <div className="rounded-md bg-violet-500/10 border border-violet-500/20 p-3">
-                      <p className="text-sm text-violet-700 dark:text-violet-300">
-                        <strong>✨ Lovable AI</strong> is your system's primary AI provider. It's pre-configured with the 
-                        <code className="mx-1 px-1 py-0.5 rounded bg-violet-500/20 text-xs">LOVABLE_API_KEY</code> 
-                        and doesn't require any setup. All codex generation will use this provider first.
-                      </p>
-                    </div>
-                  )}
-
                   {/* Default Provider Toggle - only for non-Lovable providers */}
-                  {provider.provider_code !== "lovable" && provider.hasKey && !provider.is_default && (
+                  {provider.hasKey && !provider.is_default && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -476,14 +461,14 @@ export const AIProvidersManager = () => {
                       ) : (
                         <>
                           <Star className="h-4 w-4 mr-2" />
-                          Set as Fallback Provider
+                          Set as Default Provider
                         </>
                       )}
                     </Button>
                   )}
-                  {provider.is_default && provider.provider_code !== "lovable" && (
+                  {provider.is_default && (
                     <p className="text-sm text-muted-foreground">
-                      ⭐ This provider is used as fallback if Lovable AI is unavailable.
+                      ⭐ This provider is used as the system default.
                     </p>
                   )}
 
@@ -513,7 +498,7 @@ export const AIProvidersManager = () => {
                     <div className="flex gap-2 items-center">
                       <Select
                         value={selectedModels[provider.id] || ""}
-                        onValueChange={(value) => 
+                        onValueChange={(value) =>
                           setSelectedModels(prev => ({ ...prev, [provider.id]: value }))
                         }
                       >
@@ -582,7 +567,7 @@ export const AIProvidersManager = () => {
                         <Input
                           type={showKeys[provider.id] ? "text" : "password"}
                           value={apiKeys[provider.id] || ""}
-                          onChange={(e) => 
+                          onChange={(e) =>
                             setApiKeys(prev => ({ ...prev, [provider.id]: e.target.value }))
                           }
                           placeholder={provider.hasKey ? "Enter new key to update" : "Enter API key"}
@@ -590,7 +575,7 @@ export const AIProvidersManager = () => {
                         />
                         <button
                           type="button"
-                          onClick={() => 
+                          onClick={() =>
                             setShowKeys(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))
                           }
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -648,7 +633,7 @@ export const AIProvidersManager = () => {
             </AccordionItem>
           ))}
         </Accordion>
-      </CardContent>
-    </Card>
+      </CardContent >
+    </Card >
   );
 };

@@ -43,7 +43,7 @@ async function callOpenAI(params: AICallParams): Promise<AIResponse> {
   const { systemPrompt, userPrompt, provider, maxTokens } = params;
 
   const url = ensureChatCompletionsUrl(provider.baseUrl);
-  
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -149,7 +149,7 @@ async function callGoogleGemini(params: AICallParams): Promise<AIResponse> {
 
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  
+
   return {
     content,
     usage: {
@@ -171,7 +171,7 @@ async function callPerplexity(params: AICallParams): Promise<AIResponse> {
   const { systemPrompt, userPrompt, provider, maxTokens } = params;
 
   const url = ensureChatCompletionsUrl(provider.baseUrl);
-  
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -206,57 +206,14 @@ async function callPerplexity(params: AICallParams): Promise<AIResponse> {
   };
 }
 
-// Lovable AI Gateway - uses OpenAI-compatible API format
-async function callLovableAI(params: AICallParams): Promise<AIResponse> {
-  const { systemPrompt, userPrompt, provider, maxTokens } = params;
 
-  const response = await fetch(provider.baseUrl, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${provider.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      ...(maxTokens && { max_tokens: maxTokens }),
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    if (response.status === 429) {
-      throw new Error(`Lovable AI rate limit exceeded. Please try again later.`);
-    }
-    if (response.status === 402) {
-      throw new Error(`Lovable AI payment required. Please add funds to your workspace.`);
-    }
-    throw new Error(`Lovable AI error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return {
-    content: data.choices[0].message.content,
-    usage: {
-      promptTokens: data.usage?.prompt_tokens || 0,
-      completionTokens: data.usage?.completion_tokens || 0,
-      totalTokens: data.usage?.total_tokens || 0,
-    },
-    provider: provider.providerCode,
-    model: provider.model,
-  };
-}
 
 // Main router function
 export async function callAI(params: AICallParams): Promise<AIResponse> {
   const { provider } = params;
 
   switch (provider.providerCode) {
-    case "lovable":
-      return callLovableAI(params);
+
     case "openai":
       return callOpenAI(params);
     case "anthropic":
@@ -313,34 +270,13 @@ export async function getProviderConfig(
   };
 }
 
-// Get Lovable AI provider config (always available via LOVABLE_API_KEY)
-export function getLovableAIProvider(model?: string): AIProviderConfig {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) {
-    throw new Error("LOVABLE_API_KEY not configured");
-  }
 
-  return {
-    providerCode: "lovable",
-    name: "Lovable AI",
-    baseUrl: "https://ai.gateway.lovable.dev/v1/chat/completions",
-    apiKey,
-    model: model || "google/gemini-2.5-flash",
-  };
-}
 
 // Get the first available provider with an API key configured
 export async function getFirstAvailableProvider(
   supabase: SupabaseClient
 ): Promise<AIProviderConfig | null> {
-  // First, always try Lovable AI as it's pre-configured
-  try {
-    const lovableProvider = getLovableAIProvider();
-    console.log("Using Lovable AI as primary provider");
-    return lovableProvider;
-  } catch (e) {
-    console.log("Lovable AI not available, checking other providers...");
-  }
+
 
   // Get all active providers that have API keys
   const { data: providers } = await supabase
@@ -407,25 +343,12 @@ export async function getProviderConfigWithFallback(
   return getDefaultProvider();
 }
 
-// Get default provider - prioritize Lovable AI, fallback to OpenAI
+// Get default provider - fallback to OpenAI
 export function getDefaultProvider(): AIProviderConfig {
-  // Try Lovable AI first (always available)
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (lovableKey) {
-    console.log("Using Lovable AI as default provider");
-    return {
-      providerCode: "lovable",
-      name: "Lovable AI",
-      baseUrl: "https://ai.gateway.lovable.dev/v1/chat/completions",
-      apiKey: lovableKey,
-      model: "google/gemini-2.5-flash",
-    };
-  }
-
   // Fallback to OpenAI
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
   if (!openaiKey) {
-    throw new Error("No AI provider API key configured (LOVABLE_API_KEY or OPENAI_API_KEY)");
+    throw new Error("No AI provider API key configured (OPENAI_API_KEY)");
   }
 
   return {
@@ -446,14 +369,14 @@ export async function executeParallelMerge(
   mergePrompt: string
 ): Promise<{ results: AIResponse[]; mergedResult: AIResponse }> {
   // Execute all providers in parallel
-  const promises = providers.map(provider => 
+  const promises = providers.map(provider =>
     callAI({ systemPrompt, userPrompt, provider })
   );
 
   const results = await Promise.all(promises);
 
   // Build merge context
-  const mergeContext = results.map((r, i) => 
+  const mergeContext = results.map((r, i) =>
     `=== RESULT FROM ${providers[i].name} (${providers[i].model}) ===\n${r.content}`
   ).join("\n\n");
 
@@ -483,7 +406,7 @@ export async function executeSequentialChain(
   let currentInput = initialUserPrompt;
 
   for (const step of steps) {
-    const prompt = step.customPrompt 
+    const prompt = step.customPrompt
       ? `${step.customPrompt}\n\nPrevious output:\n${currentInput}`
       : currentInput;
 

@@ -52,13 +52,13 @@ export const SystemSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPersona, setSavingPersona] = useState(false);
-  
+
   // Global default AI model state
   const [globalDefaultProviderId, setGlobalDefaultProviderId] = useState<string>("");
   const [globalDefaultModel, setGlobalDefaultModel] = useState<string>("");
   const [aiProviders, setAIProviders] = useState<AIProvider[]>([]);
   const [savingDefaultAI, setSavingDefaultAI] = useState(false);
-  
+
   // Preview state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [codexPrompts, setCodexPrompts] = useState<CodexPrompt[]>([]);
@@ -66,10 +66,10 @@ export const SystemSettings = () => {
   const [selectedCodex, setSelectedCodex] = useState<string>("");
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [loadingPrompts, setLoadingPrompts] = useState(false);
-  
+
   // Optimize state
   const [optimizingPersona, setOptimizingPersona] = useState(false);
-  
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export const SystemSettings = () => {
         .in("setting_key", ["regeneration_cooldown_minutes", "global_ai_persona_prompt", "global_default_ai_provider", "global_default_ai_model"]);
 
       if (error) throw error;
-      
+
       if (data) {
         data.forEach((setting) => {
           if (setting.setting_key === "regeneration_cooldown_minutes") {
@@ -134,9 +134,9 @@ export const SystemSettings = () => {
 
       const keysSet = new Set(keysData?.map(k => k.provider_id) || []);
 
-      // Include Lovable AI (uses env var, no DB key needed) + providers with active API keys
+      // Include providers with active API keys
       const availableProviders = (providersData || [])
-        .filter(p => p.provider_code === "lovable" || keysSet.has(p.id))
+        .filter(p => keysSet.has(p.id))
         .map(p => ({
           ...p,
           available_models: (p.available_models as unknown) as Array<{ id: string; name: string }>
@@ -289,9 +289,9 @@ export const SystemSettings = () => {
       if (!session) throw new Error("Not authenticated");
 
       const { data, error } = await supabase.functions.invoke("optimize-text", {
-        body: { 
-          text: globalPersonaPrompt, 
-          type: "prompt" 
+        body: {
+          text: globalPersonaPrompt,
+          type: "prompt"
         },
       });
 
@@ -382,23 +382,23 @@ export const SystemSettings = () => {
     }
 
     let combined = "";
-    
+
     // Global persona prompt
     combined += "═══════════════════════════════════════════════════════════════\n";
     combined += "GLOBAL PERSONA PROMPT (Applied to ALL generations)\n";
     combined += "═══════════════════════════════════════════════════════════════\n\n";
     combined += globalPersonaPrompt;
     combined += "\n\n";
-    
+
     // Separator
     combined += "───────────────────────────────────────────────────────────────\n\n";
-    
+
     // Codex system prompt
     combined += "═══════════════════════════════════════════════════════════════\n";
     combined += `CODEX SYSTEM PROMPT: ${selectedCodexData.codex_name}\n`;
     combined += "═══════════════════════════════════════════════════════════════\n\n";
     combined += selectedCodexData.system_prompt;
-    
+
     // Section prompt if selected
     if (selectedSectionData) {
       combined += "\n\n";
@@ -500,8 +500,8 @@ export const SystemSettings = () => {
           </div>
           <div className="space-y-2">
             <Label>Default Model</Label>
-            <Select 
-              value={globalDefaultModel} 
+            <Select
+              value={globalDefaultModel}
               onValueChange={setGlobalDefaultModel}
               disabled={!globalDefaultProviderId}
             >
@@ -578,9 +578,9 @@ export const SystemSettings = () => {
               </>
             )}
           </Button>
-          <Button 
-            variant="secondary" 
-            onClick={handleOptimizePersonaPrompt} 
+          <Button
+            variant="secondary"
+            onClick={handleOptimizePersonaPrompt}
             disabled={optimizingPersona || !globalPersonaPrompt.trim()}
           >
             {optimizingPersona ? (
@@ -645,8 +645,8 @@ export const SystemSettings = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Select Section (Optional)</Label>
-                    <Select 
-                      value={selectedSection} 
+                    <Select
+                      value={selectedSection}
                       onValueChange={setSelectedSection}
                       disabled={!selectedCodex || sectionPrompts.length === 0}
                     >
