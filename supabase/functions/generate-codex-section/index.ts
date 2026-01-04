@@ -3,9 +3,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logAIUsage } from "../_shared/ai-usage-logger.ts";
 import { getCodexPromptFromDB } from "../_shared/codex-db-helper.ts";
-import { 
-  callAI, 
-  getProviderConfigWithFallback, 
+import {
+  callAI,
+  getProviderConfigWithFallback,
   getDefaultProvider,
   executeParallelMerge,
   executeSequentialChain,
@@ -95,7 +95,7 @@ function generateDynamicPrices(brackets: PricingBrackets): { l1: number; l2: num
   const validL3 = PRICE_POINTS.L3.filter(p => p >= brackets.L3.min && p <= brackets.L3.max);
 
   // Randomly select one price point from each tier (with fallback to bracket min)
-  const selectRandom = (arr: number[], fallback: number) => 
+  const selectRandom = (arr: number[], fallback: number) =>
     arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : fallback;
 
   const result = {
@@ -116,15 +116,17 @@ function formatIndianPrice(price: number): string {
 }
 
 // Helper function to clean markdown and special characters from AI output
-function cleanMarkdownFromText(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold
-    .replace(/\*(.*?)\*/g, '$1')       // Remove italic
-    .replace(/^#{1,6}\s+/gm, '')       // Remove headers
-    .replace(/^[\*\-•]\s+/gm, '')      // Remove bullet points
-    .replace(/^\d+\.\s+/gm, '')        // Remove numbered lists
-    .replace(/`(.*?)`/g, '$1')         // Remove inline code
-    .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links
+function cleanMarkdownFromText(text: any): string {
+  const safeText = typeof text === "string" ? text : "";
+
+  return safeText
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^[\*\-•]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/`(.*?)`/g, "$1")
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")
     .trim();
 }
 
@@ -232,14 +234,14 @@ serve(async (req) => {
     // Get user profile data
     const userId = (section.codex as any)?.persona_run?.user_id;
     let profileData = null;
-    
+
     if (userId) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, title, location, website_social")
         .eq("id", userId)
         .single();
-      
+
       profileData = profile;
     }
 
@@ -251,7 +253,7 @@ serve(async (req) => {
 
     // Get prompts from database
     const promptConfig = await getCodexPromptFromDB(supabase, codexName, sectionIndex);
-    
+
     if (!promptConfig) {
       throw new Error(`No prompt configuration found in database for ${codexName} section ${sectionIndex}`);
     }
@@ -285,7 +287,7 @@ serve(async (req) => {
     }
 
     // Combine global persona prompt with system prompt
-    const systemPrompt = globalPersonaPrompt 
+    const systemPrompt = globalPersonaPrompt
       ? `${globalPersonaPrompt}\n\n---\n\n${baseSystemPrompt}`
       : baseSystemPrompt;
 
@@ -300,7 +302,7 @@ serve(async (req) => {
 
     // Build enhanced context starting with profile information
     let userContext = "";
-    
+
     // Add profile information if available
     if (profileData) {
       userContext += "COACH PROFILE:\n\n";
@@ -318,10 +320,10 @@ serve(async (req) => {
       }
       userContext += "\n";
     }
-    
+
     userContext += "USER'S BACKGROUND AND PROFILE:\n\n";
 
-    
+
     // Check if answers have the new format with question text
     const hasQuestionText = Object.values(userAnswers).some(
       v => typeof v === 'object' && v !== null && 'question' in v && 'answer' in v
@@ -330,7 +332,7 @@ serve(async (req) => {
     if (hasQuestionText) {
       // New format: { question, answer, category }
       const categoryMap = new Map<string, Array<{ question: string; answer: string }>>();
-      
+
       Object.entries(userAnswers).forEach(([key, value]) => {
         if (typeof value === 'object' && value !== null && 'question' in value && 'answer' in value) {
           const category = (value as any).category || 'General';
@@ -374,14 +376,14 @@ serve(async (req) => {
           userContext += `${idx + 1}. ${answer}\n\n`;
         });
       }
-      
+
       if (anchorAnswers.length > 0) {
         userContext += "=== EXPERTISE & TARGET AUDIENCE ===\n";
         anchorAnswers.forEach((answer, idx) => {
           userContext += `${idx + 1}. ${answer}\n\n`;
         });
       }
-      
+
       if (extendedAnswers.length > 0) {
         userContext += "=== BRAND VISION & GOALS ===\n";
         extendedAnswers.forEach((answer, idx) => {
@@ -389,20 +391,20 @@ serve(async (req) => {
         });
       }
     }
-    
-    const wordCountInstruction = wordCountTarget 
+
+    const wordCountInstruction = wordCountTarget
       ? `\n\nTarget word count: approximately ${wordCountTarget} words.`
       : '';
-    
+
     // Add dependent codex content if provided
-    const dependencyContext = dependentCodexContent 
+    const dependencyContext = dependentCodexContent
       ? `\n\nREFERENCE CODEX CONTENT:\nThe following is generated content from a previous codex that you should build upon and reference while creating this section:\n\n${dependentCodexContent}\n\n`
       : '';
 
     // Generate dynamic pricing only for codexes with use_pricing_brackets enabled
     let pricingContext = '';
     let shouldUsePricing = false;
-    
+
     // Check if this codex has pricing brackets enabled
     if (codexPromptId) {
       const { data: codexPromptData } = await supabase
@@ -410,17 +412,17 @@ serve(async (req) => {
         .select("use_pricing_brackets")
         .eq("id", codexPromptId)
         .single();
-      
+
       shouldUsePricing = codexPromptData?.use_pricing_brackets === true;
       console.log(`Codex ${codexName} use_pricing_brackets: ${shouldUsePricing}`);
     }
-    
+
     if (shouldUsePricing) {
       // Fetch pricing brackets from database
       const pricingBrackets = await getPricingBrackets(supabase);
       const prices = generateDynamicPrices(pricingBrackets);
       console.log(`Generated dynamic prices - L1: ₹${formatIndianPrice(prices.l1)}, L2: ₹${formatIndianPrice(prices.l2)}, L3: ₹${formatIndianPrice(prices.l3)}`);
-      
+
       pricingContext = `
 
 === MANDATORY PRICING FOR THIS COACH ===
@@ -435,7 +437,7 @@ These prices have been specifically calculated based on the coach's profile, nic
 
 `;
     }
-    
+
     const userPrompt = `${sectionPrompt}${wordCountInstruction}\n\n${userContext}${dependencyContext}${pricingContext}\n\nGenerate the content for this section following the instructions above. Write in clean human language without markdown, bullets, or formatting characters.`;
 
     // Execute based on mode
@@ -449,8 +451,8 @@ These prices have been specifically calculated based on the coach's profile, nic
     if (executionMode === 'single') {
       // Single mode - get provider config with fallback
       const provider = await getProviderConfigWithFallback(
-        supabase, 
-        aiConfig?.primary_provider_id, 
+        supabase,
+        aiConfig?.primary_provider_id,
         aiConfig?.primary_model
       );
 
@@ -465,7 +467,7 @@ These prices have been specifically calculated based on the coach's profile, nic
             userPrompt,
             provider,
           });
-          
+
           content = result.content;
           totalUsage = result.usage;
 
@@ -482,7 +484,7 @@ These prices have been specifically calculated based on the coach's profile, nic
           lastError = (error as Error).message;
           console.error(`Attempt ${retryCount + 1} failed:`, error);
           retryCount++;
-          
+
           // Wait before retry
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
@@ -490,9 +492,9 @@ These prices have been specifically calculated based on the coach's profile, nic
     } else if (executionMode === 'parallel_merge') {
       // Parallel merge mode - get AI steps from CODEX level
       console.log("Executing parallel merge mode");
-      
+
       const steps = codexPromptId ? await getCodexAISteps(supabase, codexPromptId) : [];
-      
+
       if (steps.length === 0) {
         // Fall back to single mode with fallback provider
         console.log("No parallel steps configured, falling back to single mode");
@@ -512,12 +514,12 @@ These prices have been specifically calculated based on the coach's profile, nic
 
         // Get merge provider with fallback
         const mergeProvider = await getProviderConfigWithFallback(
-          supabase, 
-          aiConfig?.merge_provider_id, 
+          supabase,
+          aiConfig?.merge_provider_id,
           aiConfig?.merge_model
         );
 
-        const mergePrompt = aiConfig?.merge_prompt || 
+        const mergePrompt = aiConfig?.merge_prompt ||
           "Synthesize the following AI-generated responses into a single, cohesive, comprehensive answer. Combine the best insights from each while eliminating redundancy.";
 
         try {
@@ -559,9 +561,9 @@ These prices have been specifically calculated based on the coach's profile, nic
     } else if (executionMode === 'sequential_chain') {
       // Sequential chain mode - get AI steps from CODEX level
       console.log("Executing sequential chain mode");
-      
+
       const steps = codexPromptId ? await getCodexAISteps(supabase, codexPromptId) : [];
-      
+
       if (steps.length === 0) {
         // Fall back to single mode with fallback provider
         console.log("No chain steps configured, falling back to single mode");
@@ -648,7 +650,7 @@ CRITICAL RULES:
           provider,
         });
         contentSummary = summaryResult.content;
-        
+
         // Add summary usage to total
         totalUsage.promptTokens += summaryResult.usage.promptTokens;
         totalUsage.completionTokens += summaryResult.usage.completionTokens;
@@ -664,7 +666,7 @@ CRITICAL RULES:
       // No usable content generated
       await supabase
         .from("codex_sections")
-        .update({ 
+        .update({
           status: "error",
           error_message: lastError || "Failed to generate content",
           retries: retryCount
@@ -683,12 +685,12 @@ CRITICAL RULES:
     // Clean markdown from AI output before saving
     const cleanedContent = cleanMarkdownFromText(content);
     const cleanedSummary = contentSummary ? cleanMarkdownFromText(contentSummary) : null;
-    
+
     // Save both content versions - mark as completed even if validation had issues
     // The content exists and is usable, just may not be perfect
     await supabase
       .from("codex_sections")
-      .update({ 
+      .update({
         content: cleanedContent,
         content_summary: cleanedSummary,
         status: "completed",
