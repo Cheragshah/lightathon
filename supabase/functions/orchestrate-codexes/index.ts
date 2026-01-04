@@ -17,16 +17,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/* ========================================================= */
+/* ===================== ENTRY POINT ======================= */
+/* ========================================================= */
 serve(async (req) => {
   /* ---------- CORS ---------- */
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  /* ---------- HARD GUARD ---------- */
+  /* ---------- BLOCK BROWSER / GET ---------- */
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ error: "POST method required" }),
+      JSON.stringify({ error: "POST request required" }),
       {
         status: 405,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -41,39 +44,34 @@ serve(async (req) => {
 
     if (!supabaseUrl || !supabaseKey) {
       return new Response(
-        JSON.stringify({ error: "Supabase env vars missing" }),
-        { status: 500 }
+        JSON.stringify({ error: "Supabase environment variables missing" }),
+        { status: 500, headers: corsHeaders }
       );
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     /* ---------- SAFE JSON PARSE ---------- */
-    let body: any;
-    try {
-      body = await req.json();
-    } catch {
+    const body = await req.json().catch(() => null);
+
+    if (!body || !body.personaRunId) {
       return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        { status: 400 }
+        JSON.stringify({ error: "personaRunId is required" }),
+        { status: 400, headers: corsHeaders }
       );
     }
 
     const { personaRunId, codexId } = body;
 
-    if (!personaRunId) {
-      return new Response(
-        JSON.stringify({ error: "personaRunId is required" }),
-        { status: 400 }
-      );
-    }
-
-    console.log("🚀 Orchestration started:", { personaRunId, codexId });
+    console.log("🚀 Orchestration started", { personaRunId, codexId });
 
     /* ---------- UPDATE RUN STATUS ---------- */
     await supabase
       .from("persona_runs")
-      .update({ status: "generating", started_at: new Date().toISOString() })
+      .update({
+        status: "generating",
+        started_at: new Date().toISOString(),
+      })
       .eq("id", personaRunId);
 
     /* ---------- LOAD CODEXES ---------- */
@@ -91,15 +89,14 @@ serve(async (req) => {
 
     const validCodexes = codexes.filter((c) => c.total_sections > 0);
 
-    let codexToProcess =
-      codexId
-        ? validCodexes.find((c) => c.id === codexId)
-        : validCodexes.find(
-          (c) =>
-            !["ready", "ready_with_errors", "failed", "completed"].includes(
-              c.status
-            )
-        );
+    const codexToProcess = codexId
+      ? validCodexes.find((c) => c.id === codexId)
+      : validCodexes.find(
+        (c) =>
+          !["ready", "ready_with_errors", "failed", "completed"].includes(
+            c.status
+          )
+      );
 
     /* ---------- NOTHING LEFT ---------- */
     if (!codexToProcess) {
@@ -172,7 +169,7 @@ serve(async (req) => {
       dependentContent = combined || null;
     }
 
-    /* ---------- SECTION GENERATION ---------- */
+    /* ---------- GENERATION ---------- */
     await supabase
       .from("codexes")
       .update({ status: "generating" })
