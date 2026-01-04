@@ -105,6 +105,10 @@ serve(async (req) => {
     let processedCount = 0;
 
     for (const [userId, items] of userQueueMap) {
+      // Collect all created codex IDs for this user to invoke orchestration once
+      const createdCodexIds: string[] = [];
+      let personaRunId: string | null = null;
+
       try {
         // Check if user already has ANY persona run (use most recent)
         const { data: existingRun } = await supabase
@@ -115,7 +119,6 @@ serve(async (req) => {
           .limit(1)
           .single();
 
-        let personaRunId: string;
         let answersJson: any;
 
         if (existingRun) {
@@ -248,26 +251,10 @@ serve(async (req) => {
 
           console.log(`Created codex ${newCodex.id} for ${codexPrompt.codex_name} with status ${codexStatus} and ${actualSectionCount} sections`);
 
-          // Only trigger orchestration if NOT awaiting answers
-          if (!awaitAnswers) {
-            // Trigger codex section generation for THIS SPECIFIC CODEX ONLY
-            try {
-              const { error: generateError } = await supabase.functions.invoke('orchestrate-codexes', {
-                body: { 
-                  personaRunId,
-                  codexId: newCodex.id, // Pass specific codexId to only generate this codex
-                  aiModel: item.ai_model,
-                  aiProviderId: item.ai_provider_id
-                }
-              });
+          // Collect codex ID for batch orchestration
+          createdCodexIds.push(newCodex.id);
 
-              if (generateError) {
-                console.error(`Error invoking orchestrate-codexes:`, generateError);
-              }
-            } catch (invokeError) {
-              console.error(`Failed to invoke orchestrate-codexes:`, invokeError);
-            }
-          } else {
+          if (awaitAnswers) {
             console.log(`Codex ${newCodex.id} set to awaiting_answers - waiting for user input`);
           }
 
@@ -281,6 +268,26 @@ serve(async (req) => {
             .eq('id', item.id);
 
           processedCount++;
+        }
+
+        // After all codexes are created, invoke orchestration ONCE with all codex IDs
+        // This ensures sequential processing in codex_order
+        if (!awaitAnswers && createdCodexIds.length > 0 && personaRunId) {
+          try {
+            console.log(`Invoking orchestrate-codexes for ${createdCodexIds.length} codexes sequentially`);
+            const { error: generateError } = await supabase.functions.invoke('orchestrate-codexes', {
+              body: { 
+                personaRunId,
+                codexIds: createdCodexIds, // Pass all codex IDs for sequential processing
+              }
+            });
+
+            if (generateError) {
+              console.error(`Error invoking orchestrate-codexes:`, generateError);
+            }
+          } catch (invokeError) {
+            console.error(`Failed to invoke orchestrate-codexes:`, invokeError);
+          }
         }
       } catch (userError) {
         console.error(`Error processing user ${userId}:`, userError);
