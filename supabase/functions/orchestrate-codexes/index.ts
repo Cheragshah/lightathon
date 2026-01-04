@@ -22,10 +22,12 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { personaRunId, codexId } = await req.json();
+    const { personaRunId, codexId, codexIds } = await req.json();
 
     console.log("Starting orchestration for persona run:", personaRunId);
-    if (codexId) {
+    if (codexIds && codexIds.length > 0) {
+      console.log("🎯 Targeting specific codexes (sequential):", codexIds.length, "codexes");
+    } else if (codexId) {
       console.log("🎯 Targeting specific codex:", codexId);
     }
 
@@ -35,7 +37,7 @@ serve(async (req) => {
       .update({ status: "generating", started_at: new Date().toISOString() })
       .eq("id", personaRunId);
 
-    // Build query for codexes - filter by specific codexId if provided
+    // Build query for codexes - filter by specific codexId(s) if provided
     let codexQuery = supabase
       .from("codexes")
       .select(`
@@ -44,8 +46,11 @@ serve(async (req) => {
       `)
       .eq("persona_run_id", personaRunId);
     
-    // If codexId is provided, only get that specific codex
-    if (codexId) {
+    // If codexIds array is provided, filter to those specific codexes (for sequential processing)
+    if (codexIds && codexIds.length > 0) {
+      codexQuery = codexQuery.in("id", codexIds);
+    } else if (codexId) {
+      // Single codex mode (backward compatibility)
       codexQuery = codexQuery.eq("id", codexId);
     }
     
@@ -64,7 +69,8 @@ serve(async (req) => {
         skippedCodexes.map(c => c.codex_name));
     }
 
-    console.log(`Found ${validCodexes.length} codexes to generate${codexId ? ' (single codex mode)' : ''}`);
+    const modeDescription = codexIds?.length > 0 ? ' (sequential batch mode)' : codexId ? ' (single codex mode)' : '';
+    console.log(`Found ${validCodexes.length} codexes to generate${modeDescription}`);
 
     // Get persona run data including transcript
     const { data: personaRun } = await supabase
