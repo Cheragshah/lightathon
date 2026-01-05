@@ -17,8 +17,17 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        { status: 401 }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
+
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {

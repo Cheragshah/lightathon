@@ -19,8 +19,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user from auth header
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        { status: 401 }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
+
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
@@ -37,7 +46,7 @@ serve(async (req) => {
 
     if (isBlocked) {
       return new Response(
-        JSON.stringify({ error: "Your account has been blocked from generating personas. Please contact support." }), 
+        JSON.stringify({ error: "Your account has been blocked from generating personas. Please contact support." }),
         {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,9 +77,9 @@ serve(async (req) => {
 
       if ((existingRunsCount || 0) >= 1 && !unlimitedPermission) {
         return new Response(
-          JSON.stringify({ 
-            error: "You have already created a persona run. Please contact the administrator if you need to create another one." 
-          }), 
+          JSON.stringify({
+            error: "You have already created a persona run. Please contact the administrator if you need to create another one."
+          }),
           {
             status: 403,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -106,8 +115,8 @@ serve(async (req) => {
         const field = issue.path.join(' -> ');
         console.error('Validation error:', issue);
         return new Response(
-          JSON.stringify({ 
-            error: `Validation error: ${issue.message}${field ? ` (in ${field})` : ''}` 
+          JSON.stringify({
+            error: `Validation error: ${issue.message}${field ? ` (in ${field})` : ''}`
           }),
           {
             status: 400,
@@ -142,7 +151,7 @@ serve(async (req) => {
 
     // Get active codex configuration from database
     const activeCodexConfig = await getActiveCodexConfigFromDB(supabase);
-    
+
     if (!activeCodexConfig || activeCodexConfig.length === 0) {
       throw new Error("No active codexes found in database");
     }
@@ -171,7 +180,7 @@ serve(async (req) => {
 
     // Start orchestration in background
     console.log("Triggering codex orchestration...");
-    
+
     // Call orchestration function (fire and forget)
     fetch(`${supabaseUrl}/functions/v1/orchestrate-codexes`, {
       method: "POST",
@@ -183,8 +192,8 @@ serve(async (req) => {
     }).catch(err => console.error("Failed to trigger orchestration:", err));
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         personaRunId: personaRun.id,
         message: "Persona run created. Generation starting..."
       }),

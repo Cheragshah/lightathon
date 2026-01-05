@@ -357,7 +357,7 @@ async function callAI(apiKey: string, prompt: string) {
 
     const data = await response.json();
     const content = data.choices[0].message.content;
-    
+
     // Try to parse as JSON, if fails return as text
     try {
       return JSON.parse(content);
@@ -376,13 +376,13 @@ serve(async (req) => {
     url: req.url,
     timestamp: new Date().toISOString()
   });
-  
+
   console.log('🔍 Environment check:', {
     hasSupabaseUrl: !!Deno.env.get("SUPABASE_URL"),
     hasSupabaseAnonKey: !!Deno.env.get("SUPABASE_ANON_KEY"),
     hasOpenAIApiKey: !!Deno.env.get("OPENAI_API_KEY")
   });
-  
+
   if (req.method === "OPTIONS") {
     console.log('✅ Handling OPTIONS request');
     return new Response(null, { headers: corsHeaders });
@@ -398,8 +398,17 @@ serve(async (req) => {
     );
 
     console.log('🔐 Step 2: Authenticating user');
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        { status: 401 }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
+
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
@@ -479,7 +488,7 @@ serve(async (req) => {
       if (minutesSinceRegen < cooldownMinutes) {
         const remainingMinutes = Math.ceil(cooldownMinutes - minutesSinceRegen);
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: `Rate limit exceeded. Please wait ${remainingMinutes} more minute(s) before regenerating.`,
             cooldownMinutes: remainingMinutes
           }), {
@@ -625,7 +634,7 @@ ${anchorAnswers[2]}
     const wordCount = generatedText.split(/\s+/).length;
 
     console.log("Updating persona with main text...");
-    
+
     // First, update persona with main text and scores
     const { error: updateMainError } = await supabaseClient
       .from("personas")

@@ -17,8 +17,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get authenticated user
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        { status: 401 }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
+
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {

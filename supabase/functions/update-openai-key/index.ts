@@ -17,8 +17,17 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        { status: 401 }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
+
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
@@ -45,9 +54,9 @@ serve(async (req) => {
     // Note: In a real implementation, you would use Supabase Vault or a secure secret management system
     // For now, we'll store it as an environment variable (requires manual setup)
     // This is a placeholder - actual implementation would need infrastructure changes
-    
+
     console.log("OpenAI API key update requested by admin:", user.id);
-    
+
     // Log the update in admin activity
     await supabase.from("admin_activity_log").insert({
       admin_id: user.id,
@@ -58,9 +67,9 @@ serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "API key updated successfully. Note: Manual deployment required to apply changes." 
+      JSON.stringify({
+        success: true,
+        message: "API key updated successfully. Note: Manual deployment required to apply changes."
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
